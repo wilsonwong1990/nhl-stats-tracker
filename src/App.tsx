@@ -145,7 +145,7 @@ function App() {
             Vegas Golden Knights
           </h1>
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            <p className="text-muted-foreground">2025-26 Season Stats Tracker</p>
+            <p className="text-muted-foreground">2024-25 Season Stats Tracker</p>
             {lastUpdated && (
               <p className="text-xs text-muted-foreground">
                 Last updated: {lastUpdated} PST
