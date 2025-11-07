@@ -22,4 +22,13 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
+  server: {
+    proxy: {
+      '/nhl-api': {
+        target: 'https://api-web.nhle.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/nhl-api/, ''),
+      },
+    },
+  },
 });

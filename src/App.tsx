@@ -146,9 +146,7 @@ function App() {
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="text-center space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold text-accent tracking-tight">
-            Vegas Golden Knights
-          </h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-accent tracking-tight">Vegas Golden Knights</h1>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <p className="text-muted-foreground">2024-25 Season Stats Tracker</p>
             {lastUpdated && (
@@ -348,7 +346,7 @@ function App() {
         </section>
       </div>
     </div>
-  )
+  );
 }
 
 export default App
