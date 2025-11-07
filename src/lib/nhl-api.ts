@@ -107,21 +107,21 @@ function getMockData(): TeamStats {
 }
 
 export async function fetchVGKSchedule(): Promise<Game[]> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
+  
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 10000)
-    
     const currentDate = new Date().toISOString().split('T')[0]
     const url = `${NHL_API_BASE}/club-schedule-season/${VGK_TEAM_ABBREV}/20242025`
     console.log('Fetching schedule from:', url)
     
     const response = await fetch(url, {
       signal: controller.signal,
-      mode: 'cors',
       headers: {
         'Accept': 'application/json'
       }
     })
+    
     clearTimeout(timeout)
     
     if (!response.ok) {
@@ -130,7 +130,7 @@ export async function fetchVGKSchedule(): Promise<Game[]> {
     }
     
     const data = await response.json()
-    console.log('Schedule data received:', data)
+    console.log('Schedule data received, games:', data.games?.length || 0)
     const games: Game[] = []
     
     if (data.games && Array.isArray(data.games)) {
@@ -152,9 +152,10 @@ export async function fetchVGKSchedule(): Promise<Game[]> {
       }
     }
     
-    console.log('Parsed games:', games.length)
+    console.log('Successfully parsed', games.length, 'upcoming games')
     return games
   } catch (error) {
+    clearTimeout(timeout)
     if (error instanceof Error && error.name === 'AbortError') {
       console.error('Timeout fetching VGK schedule')
       throw new Error('Request timeout - please try again')
@@ -165,20 +166,20 @@ export async function fetchVGKSchedule(): Promise<Game[]> {
 }
 
 export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+  
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
-    
     const url = `${NHL_API_BASE}/club-stats/${VGK_TEAM_ABBREV}/20242025/2`
     console.log('Fetching stats from:', url)
     
     const statsResponse = await fetch(url, {
       signal: controller.signal,
-      mode: 'cors',
       headers: {
         'Accept': 'application/json'
       }
     })
+    
     clearTimeout(timeout)
     
     if (!statsResponse.ok) {
@@ -187,7 +188,7 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
     }
     
     const data = await statsResponse.json()
-    console.log('Stats data received:', data)
+    console.log('Stats data received, skaters:', data.skaters?.length || 0, 'goalies:', data.goalies?.length || 0)
     
     const skaters = data.skaters || []
     const goalies = data.goalies || []
@@ -241,7 +242,7 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
         value: g.savePctg || 0
       }))
     
-    console.log('Parsed leaders:', { pointLeaders: pointLeaders.length, goalLeaders: goalLeaders.length })
+    console.log('Successfully parsed stats leaders')
     
     return {
       pointLeaders,
@@ -253,6 +254,7 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
       injuries: []
     }
   } catch (error) {
+    clearTimeout(timeout)
     if (error instanceof Error && error.name === 'AbortError') {
       console.error('Timeout fetching VGK stats')
       throw new Error('Request timeout - please try again')
@@ -263,36 +265,49 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
 }
 
 export async function fetchAllVGKData(): Promise<TeamStats> {
-  try {
-    console.log('Starting data fetch...')
-    const [games, stats] = await Promise.all([
-      fetchVGKSchedule().catch(err => {
-        console.error('Schedule fetch failed, using mock data:', err)
-        return getMockData().games
-      }),
-      fetchVGKStats().catch(err => {
-        console.error('Stats fetch failed, using mock data:', err)
-        const mockData = getMockData()
-        return {
-          pointLeaders: mockData.pointLeaders,
-          goalLeaders: mockData.goalLeaders,
-          assistLeaders: mockData.assistLeaders,
-          blockLeaders: mockData.blockLeaders,
-          hitLeaders: mockData.hitLeaders,
-          goalieStats: mockData.goalieStats,
-          injuries: mockData.injuries
-        }
-      })
-    ])
-    
-    console.log('Data fetch complete:', { gamesCount: games.length })
-    
-    return {
-      games,
-      ...stats
+  console.log('Starting NHL API data fetch...')
+  
+  const [gamesResult, statsResult] = await Promise.allSettled([
+    fetchVGKSchedule(),
+    fetchVGKStats()
+  ])
+  
+  let games: Game[] = []
+  let stats: Omit<TeamStats, 'games'>
+  
+  if (gamesResult.status === 'fulfilled') {
+    games = gamesResult.value
+    console.log('✓ Schedule loaded successfully:', games.length, 'games')
+  } else {
+    console.error('✗ Schedule fetch failed:', gamesResult.reason)
+    games = getMockData().games
+  }
+  
+  if (statsResult.status === 'fulfilled') {
+    stats = statsResult.value
+    console.log('✓ Stats loaded successfully')
+  } else {
+    console.error('✗ Stats fetch failed:', statsResult.reason)
+    const mockData = getMockData()
+    stats = {
+      pointLeaders: mockData.pointLeaders,
+      goalLeaders: mockData.goalLeaders,
+      assistLeaders: mockData.assistLeaders,
+      blockLeaders: mockData.blockLeaders,
+      hitLeaders: mockData.hitLeaders,
+      goalieStats: mockData.goalieStats,
+      injuries: mockData.injuries
     }
-  } catch (error) {
-    console.error('Complete data fetch failed, using all mock data:', error)
-    return getMockData()
+  }
+  
+  const usedMockData = gamesResult.status === 'rejected' || statsResult.status === 'rejected'
+  if (usedMockData) {
+    throw new Error('Unable to fetch live data from NHL API - check console for details')
+  }
+  
+  console.log('✓ All data loaded successfully')
+  return {
+    games,
+    ...stats
   }
 }
