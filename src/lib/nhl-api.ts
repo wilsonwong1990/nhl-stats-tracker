@@ -43,7 +43,7 @@ function convertToPST(dateString: string): string {
 export async function fetchVGKSchedule(): Promise<Game[]> {
   try {
     const currentDate = new Date().toISOString().split('T')[0]
-    const response = await fetch(`${NHL_API_BASE}/club-schedule-season/${VGK_TEAM_ABBREV}/now`)
+    const response = await fetch(`${NHL_API_BASE}/club-schedule-season/${VGK_TEAM_ABBREV}/20252026`)
     
     if (!response.ok) {
       throw new Error('Failed to fetch schedule')
