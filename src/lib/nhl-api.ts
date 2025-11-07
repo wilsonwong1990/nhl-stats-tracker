@@ -42,11 +42,17 @@ function convertToPST(dateString: string): string {
 
 export async function fetchVGKSchedule(): Promise<Game[]> {
   try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+    
     const currentDate = new Date().toISOString().split('T')[0]
-    const response = await fetch(`${NHL_API_BASE}/club-schedule-season/${VGK_TEAM_ABBREV}/20242025`)
+    const response = await fetch(`${NHL_API_BASE}/club-schedule-season/${VGK_TEAM_ABBREV}/20242025`, {
+      signal: controller.signal
+    })
+    clearTimeout(timeout)
     
     if (!response.ok) {
-      throw new Error('Failed to fetch schedule')
+      throw new Error(`Failed to fetch schedule: ${response.status} ${response.statusText}`)
     }
     
     const data = await response.json()
@@ -73,14 +79,76 @@ export async function fetchVGKSchedule(): Promise<Game[]> {
     
     return games
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('Timeout fetching VGK schedule')
+      throw new Error('Request timeout - please try again')
+    }
     console.error('Error fetching VGK schedule:', error)
     throw error
   }
 }
 
+async function fetchPlayerStats(playerId: number, isGoalie: boolean, firstName: string, lastName: string) {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5000)
+    
+    const statsResponse = await fetch(`${NHL_API_BASE}/player/${playerId}/landing`, {
+      signal: controller.signal
+    })
+    clearTimeout(timeout)
+    
+    if (!statsResponse.ok) return null
+    
+    const stats = await statsResponse.json()
+    const seasonStats = stats.featuredStats?.regularSeason?.subSeason || stats.featuredStats?.regularSeason
+    
+    if (!seasonStats) return null
+    
+    const name = `${firstName} ${lastName}`.trim()
+    
+    if (isGoalie) {
+      return {
+        name,
+        goals: 0,
+        assists: 0,
+        points: 0,
+        blocks: 0,
+        hits: 0,
+        isGoalie: true,
+        savePercentage: seasonStats.savePctg || 0
+      }
+    }
+    
+    return {
+      name,
+      goals: seasonStats.goals || 0,
+      assists: seasonStats.assists || 0,
+      points: seasonStats.points || 0,
+      blocks: seasonStats.blockedShots || 0,
+      hits: seasonStats.hits || 0,
+      isGoalie: false,
+      savePercentage: 0
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.warn(`Timeout fetching stats for player ${playerId}`)
+    } else {
+      console.error(`Error fetching stats for player ${playerId}:`, error)
+    }
+    return null
+  }
+}
+
 export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
   try {
-    const rosterResponse = await fetch(`${NHL_API_BASE}/roster/${VGK_TEAM_ABBREV}/current`)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+    
+    const rosterResponse = await fetch(`${NHL_API_BASE}/roster/${VGK_TEAM_ABBREV}/current`, {
+      signal: controller.signal
+    })
+    clearTimeout(timeout)
     
     if (!rosterResponse.ok) {
       throw new Error('Failed to fetch roster')
@@ -88,96 +156,26 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
     
     const rosterData = await rosterResponse.json()
     
-    const playerStats: Array<{
-      name: string
-      goals: number
-      assists: number
-      points: number
-      blocks: number
-      hits: number
-      isGoalie: boolean
-      savePercentage: number
-    }> = []
+    const allPlayers = [
+      ...(rosterData.forwards || []).map((p: any) => ({ ...p, isGoalie: false })),
+      ...(rosterData.defensemen || []).map((p: any) => ({ ...p, isGoalie: false })),
+      ...(rosterData.goalies || []).map((p: any) => ({ ...p, isGoalie: true }))
+    ]
     
-    if (rosterData.forwards) {
-      for (const player of rosterData.forwards) {
-        try {
-          const statsResponse = await fetch(`${NHL_API_BASE}/player/${player.id}/landing`)
-          if (statsResponse.ok) {
-            const stats = await statsResponse.json()
-            const seasonStats = stats.featuredStats?.regularSeason?.subSeason || stats.featuredStats?.regularSeason
-            
-            if (seasonStats) {
-              playerStats.push({
-                name: `${player.firstName?.default || ''} ${player.lastName?.default || ''}`.trim(),
-                goals: seasonStats.goals || 0,
-                assists: seasonStats.assists || 0,
-                points: seasonStats.points || 0,
-                blocks: seasonStats.blockedShots || 0,
-                hits: seasonStats.hits || 0,
-                isGoalie: false,
-                savePercentage: 0
-              })
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching stats for player ${player.id}:`, error)
-        }
-      }
-    }
+    const statsPromises = allPlayers.map(player =>
+      fetchPlayerStats(
+        player.id,
+        player.isGoalie,
+        player.firstName?.default || '',
+        player.lastName?.default || ''
+      )
+    )
     
-    if (rosterData.defensemen) {
-      for (const player of rosterData.defensemen) {
-        try {
-          const statsResponse = await fetch(`${NHL_API_BASE}/player/${player.id}/landing`)
-          if (statsResponse.ok) {
-            const stats = await statsResponse.json()
-            const seasonStats = stats.featuredStats?.regularSeason?.subSeason || stats.featuredStats?.regularSeason
-            
-            if (seasonStats) {
-              playerStats.push({
-                name: `${player.firstName?.default || ''} ${player.lastName?.default || ''}`.trim(),
-                goals: seasonStats.goals || 0,
-                assists: seasonStats.assists || 0,
-                points: seasonStats.points || 0,
-                blocks: seasonStats.blockedShots || 0,
-                hits: seasonStats.hits || 0,
-                isGoalie: false,
-                savePercentage: 0
-              })
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching stats for player ${player.id}:`, error)
-        }
-      }
-    }
+    const results = await Promise.all(statsPromises)
+    const playerStats = results.filter((stat): stat is NonNullable<typeof stat> => stat !== null)
     
-    if (rosterData.goalies) {
-      for (const player of rosterData.goalies) {
-        try {
-          const statsResponse = await fetch(`${NHL_API_BASE}/player/${player.id}/landing`)
-          if (statsResponse.ok) {
-            const stats = await statsResponse.json()
-            const seasonStats = stats.featuredStats?.regularSeason?.subSeason || stats.featuredStats?.regularSeason
-            
-            if (seasonStats) {
-              playerStats.push({
-                name: `${player.firstName?.default || ''} ${player.lastName?.default || ''}`.trim(),
-                goals: 0,
-                assists: 0,
-                points: 0,
-                blocks: 0,
-                hits: 0,
-                isGoalie: true,
-                savePercentage: seasonStats.savePctg || 0
-              })
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching stats for goalie ${player.id}:`, error)
-        }
-      }
+    if (playerStats.length === 0) {
+      throw new Error('No player stats available')
     }
     
     const pointLeaders = playerStats
