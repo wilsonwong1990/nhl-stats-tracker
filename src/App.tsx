@@ -53,6 +53,7 @@ function App() {
     const cached = cachedTeamData
 
     if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
+      console.log('Using cached data')
       setGames(cached.data.games)
       setPointLeaders(cached.data.pointLeaders)
       setGoalLeaders(cached.data.goalLeaders)
@@ -66,8 +67,10 @@ function App() {
     }
 
     try {
+      console.log('Fetching fresh data from NHL API...')
       const data = await fetchAllVGKData()
       
+      console.log('Data loaded successfully:', data)
       setGames(data.games)
       setPointLeaders(data.pointLeaders)
       setGoalLeaders(data.goalLeaders)
@@ -87,9 +90,11 @@ function App() {
       }
     } catch (err) {
       console.error('Error loading VGK data:', err)
-      setError('Failed to load data from NHL API')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load data from NHL API'
+      setError(errorMessage)
       
       if (cached) {
+        console.log('Falling back to cached data')
         setGames(cached.data.games)
         setPointLeaders(cached.data.pointLeaders)
         setGoalLeaders(cached.data.goalLeaders)
@@ -98,9 +103,9 @@ function App() {
         setHitLeaders(cached.data.hitLeaders)
         setGoalieStats(cached.data.goalieStats)
         setInjuries(cached.data.injuries)
-        toast.error('Using cached data')
+        toast.error('Using cached data - API unavailable')
       } else {
-        toast.error('Failed to load data')
+        toast.error('Failed to load data - please try again')
       }
     } finally {
       setIsLoading(false)
@@ -157,12 +162,13 @@ function App() {
               onClick={() => loadData(true)}
               disabled={isLoading}
               className="hover:bg-accent hover:text-accent-foreground transition-colors"
+              title="Refresh data"
             >
               <ArrowClockwise className={isLoading ? 'animate-spin' : ''} size={16} weight="bold" />
             </Button>
           </div>
           {error && (
-            <div className="flex items-center justify-center gap-2 text-sm text-destructive">
+            <div className="flex items-center justify-center gap-2 text-sm text-amber-400 bg-amber-950/30 px-4 py-2 rounded-lg border border-amber-900/50">
               <Warning size={16} weight="bold" />
               <span>{error}</span>
             </div>
