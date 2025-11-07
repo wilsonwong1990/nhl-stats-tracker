@@ -88,131 +88,73 @@ export async function fetchVGKSchedule(): Promise<Game[]> {
   }
 }
 
-async function fetchPlayerStats(playerId: number, isGoalie: boolean, firstName: string, lastName: string) {
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
-    
-    const statsResponse = await fetch(`${NHL_API_BASE}/player/${playerId}/landing`, {
-      signal: controller.signal
-    })
-    clearTimeout(timeout)
-    
-    if (!statsResponse.ok) return null
-    
-    const stats = await statsResponse.json()
-    const seasonStats = stats.featuredStats?.regularSeason?.subSeason || stats.featuredStats?.regularSeason
-    
-    if (!seasonStats) return null
-    
-    const name = `${firstName} ${lastName}`.trim()
-    
-    if (isGoalie) {
-      return {
-        name,
-        goals: 0,
-        assists: 0,
-        points: 0,
-        blocks: 0,
-        hits: 0,
-        isGoalie: true,
-        savePercentage: seasonStats.savePctg || 0
-      }
-    }
-    
-    return {
-      name,
-      goals: seasonStats.goals || 0,
-      assists: seasonStats.assists || 0,
-      points: seasonStats.points || 0,
-      blocks: seasonStats.blockedShots || 0,
-      hits: seasonStats.hits || 0,
-      isGoalie: false,
-      savePercentage: 0
-    }
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.warn(`Timeout fetching stats for player ${playerId}`)
-    } else {
-      console.error(`Error fetching stats for player ${playerId}:`, error)
-    }
-    return null
-  }
-}
-
 export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 10000)
+    const timeout = setTimeout(() => controller.abort(), 15000)
     
-    const rosterResponse = await fetch(`${NHL_API_BASE}/roster/${VGK_TEAM_ABBREV}/current`, {
+    const statsResponse = await fetch(`${NHL_API_BASE}/club-stats/${VGK_TEAM_ABBREV}/20242025/2`, {
       signal: controller.signal
     })
     clearTimeout(timeout)
     
-    if (!rosterResponse.ok) {
-      throw new Error('Failed to fetch roster')
+    if (!statsResponse.ok) {
+      throw new Error(`Failed to fetch team stats: ${statsResponse.status}`)
     }
     
-    const rosterData = await rosterResponse.json()
+    const data = await statsResponse.json()
     
-    const allPlayers = [
-      ...(rosterData.forwards || []).map((p: any) => ({ ...p, isGoalie: false })),
-      ...(rosterData.defensemen || []).map((p: any) => ({ ...p, isGoalie: false })),
-      ...(rosterData.goalies || []).map((p: any) => ({ ...p, isGoalie: true }))
-    ]
+    const skaters = data.skaters || []
+    const goalies = data.goalies || []
     
-    const statsPromises = allPlayers.map(player =>
-      fetchPlayerStats(
-        player.id,
-        player.isGoalie,
-        player.firstName?.default || '',
-        player.lastName?.default || ''
-      )
-    )
-    
-    const results = await Promise.all(statsPromises)
-    const playerStats = results.filter((stat): stat is NonNullable<typeof stat> => stat !== null)
-    
-    if (playerStats.length === 0) {
-      throw new Error('No player stats available')
-    }
-    
-    const pointLeaders = playerStats
-      .filter(p => !p.isGoalie)
-      .sort((a, b) => b.points - a.points)
+    const pointLeaders = [...skaters]
+      .sort((a, b) => (b.points || 0) - (a.points || 0))
       .slice(0, 5)
-      .map(p => ({ name: p.name, value: p.points }))
+      .map(p => ({
+        name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
+        value: p.points || 0
+      }))
     
-    const goalLeaders = playerStats
-      .filter(p => !p.isGoalie)
-      .sort((a, b) => b.goals - a.goals)
+    const goalLeaders = [...skaters]
+      .sort((a, b) => (b.goals || 0) - (a.goals || 0))
       .slice(0, 5)
-      .map(p => ({ name: p.name, value: p.goals }))
+      .map(p => ({
+        name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
+        value: p.goals || 0
+      }))
     
-    const assistLeaders = playerStats
-      .filter(p => !p.isGoalie)
-      .sort((a, b) => b.assists - a.assists)
+    const assistLeaders = [...skaters]
+      .sort((a, b) => (b.assists || 0) - (a.assists || 0))
       .slice(0, 5)
-      .map(p => ({ name: p.name, value: p.assists }))
+      .map(p => ({
+        name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
+        value: p.assists || 0
+      }))
     
-    const blockLeaders = playerStats
-      .filter(p => !p.isGoalie)
-      .sort((a, b) => b.blocks - a.blocks)
+    const blockLeaders = [...skaters]
+      .sort((a, b) => (b.blockedShots || 0) - (a.blockedShots || 0))
       .slice(0, 5)
-      .map(p => ({ name: p.name, value: p.blocks }))
+      .map(p => ({
+        name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
+        value: p.blockedShots || 0
+      }))
     
-    const hitLeaders = playerStats
-      .filter(p => !p.isGoalie)
-      .sort((a, b) => b.hits - a.hits)
+    const hitLeaders = [...skaters]
+      .sort((a, b) => (b.hits || 0) - (a.hits || 0))
       .slice(0, 5)
-      .map(p => ({ name: p.name, value: p.hits }))
+      .map(p => ({
+        name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
+        value: p.hits || 0
+      }))
     
-    const goalieStats = playerStats
-      .filter(p => p.isGoalie)
-      .sort((a, b) => b.savePercentage - a.savePercentage)
+    const goalieStats = [...goalies]
+      .filter(g => (g.gamesPlayed || 0) > 0)
+      .sort((a, b) => (b.savePctg || 0) - (a.savePctg || 0))
       .slice(0, 3)
-      .map(p => ({ name: p.name, value: p.savePercentage }))
+      .map(g => ({
+        name: `${g.firstName?.default || ''} ${g.lastName?.default || ''}`.trim(),
+        value: g.savePctg || 0
+      }))
     
     return {
       pointLeaders,
@@ -224,6 +166,10 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
       injuries: []
     }
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('Timeout fetching VGK stats')
+      throw new Error('Request timeout - please try again')
+    }
     console.error('Error fetching VGK stats:', error)
     throw error
   }
