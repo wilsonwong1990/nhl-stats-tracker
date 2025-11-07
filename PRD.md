@@ -13,53 +13,53 @@ A comprehensive stats tracking application for the Vegas Golden Knights hockey t
 ## Essential Features
 
 ### Upcoming Games Schedule
-- **Functionality**: Displays next 10 upcoming games with opponent, home/away status, and PST start time
-- **Purpose**: Allows fans to quickly see when and where the team plays next
-- **Trigger**: Loads automatically on page load
-- **Progression**: View current 10 games → Click next/previous arrows → View different set of 10 games → Pagination state persists
-- **Success criteria**: All game details clearly visible in table format with working pagination controls
+- **Functionality**: Displays next 10 upcoming games with opponent, home/away status, and PST start time, fetched from NHL API
+- **Purpose**: Allows fans to quickly see when and where the team plays next with real-time data
+- **Trigger**: Loads automatically on page load, fetches from NHL API, caches for 24 hours
+- **Progression**: View current 10 games → Click next/previous arrows → View different set of 10 games → Pagination state persists → Data refreshes daily
+- **Success criteria**: All game details clearly visible in table format with working pagination controls and live data from NHL
 
 ### Point Leaders Board
-- **Functionality**: Shows top players by total points (goals + assists) for current season
-- **Purpose**: Highlights overall offensive contributors
-- **Trigger**: Displays automatically on load
-- **Progression**: Data loads → Displays sorted list by points → Shows rank, player name, and point total
-- **Success criteria**: Clear ranking of top point scorers with accurate statistics
+- **Functionality**: Shows top players by total points (goals + assists) for current season, fetched from NHL API
+- **Purpose**: Highlights overall offensive contributors with live stats
+- **Trigger**: Displays automatically on load, fetches from NHL API, caches for 24 hours
+- **Progression**: Data loads from API → Displays sorted list by points → Shows rank, player name, and point total → Data refreshes daily
+- **Success criteria**: Clear ranking of top point scorers with accurate, live statistics from NHL
 
 ### Goal Leaders Board
-- **Functionality**: Shows top goal scorers for current season
-- **Purpose**: Identifies pure goal-scoring leaders
-- **Trigger**: Displays automatically on load
-- **Progression**: Data loads → Displays sorted list by goals → Shows rank, player name, and goal total
-- **Success criteria**: Clear ranking of top goal scorers
+- **Functionality**: Shows top goal scorers for current season, fetched from NHL API
+- **Purpose**: Identifies pure goal-scoring leaders with live stats
+- **Trigger**: Displays automatically on load, fetches from NHL API, caches for 24 hours
+- **Progression**: Data loads from API → Displays sorted list by goals → Shows rank, player name, and goal total → Data refreshes daily
+- **Success criteria**: Clear ranking of top goal scorers with accurate, live statistics from NHL
 
 ### Assist Leaders Board
-- **Functionality**: Shows top assist leaders for current season
-- **Purpose**: Highlights playmaking ability
-- **Trigger**: Displays automatically on load
-- **Progression**: Data loads → Displays sorted list by assists → Shows rank, player name, and assist total
-- **Success criteria**: Clear ranking of top assist leaders
+- **Functionality**: Shows top assist leaders for current season, fetched from NHL API
+- **Purpose**: Highlights playmaking ability with live stats
+- **Trigger**: Displays automatically on load, fetches from NHL API, caches for 24 hours
+- **Progression**: Data loads from API → Displays sorted list by assists → Shows rank, player name, and assist total → Data refreshes daily
+- **Success criteria**: Clear ranking of top assist leaders with accurate, live statistics from NHL
 
 ### Block Leaders Board
-- **Functionality**: Shows defensive leaders in blocked shots
-- **Purpose**: Highlights defensive contributions
-- **Trigger**: Displays automatically on load
-- **Progression**: Data loads → Displays sorted list by blocks → Shows rank, player name, and block total
-- **Success criteria**: Clear ranking of top shot blockers
+- **Functionality**: Shows defensive leaders in blocked shots, fetched from NHL API
+- **Purpose**: Highlights defensive contributions with live stats
+- **Trigger**: Displays automatically on load, fetches from NHL API, caches for 24 hours
+- **Progression**: Data loads from API → Displays sorted list by blocks → Shows rank, player name, and block total → Data refreshes daily
+- **Success criteria**: Clear ranking of top shot blockers with accurate, live statistics from NHL
 
 ### Hit Leaders Board
-- **Functionality**: Shows physical play leaders in hits
-- **Purpose**: Identifies most physical players
-- **Trigger**: Displays automatically on load
-- **Progression**: Data loads → Displays sorted list by hits → Shows rank, player name, and hit total
-- **Success criteria**: Clear ranking of top hitters
+- **Functionality**: Shows physical play leaders in hits, fetched from NHL API
+- **Purpose**: Identifies most physical players with live stats
+- **Trigger**: Displays automatically on load, fetches from NHL API, caches for 24 hours
+- **Progression**: Data loads from API → Displays sorted list by hits → Shows rank, player name, and hit total → Data refreshes daily
+- **Success criteria**: Clear ranking of top hitters with accurate, live statistics from NHL
 
 ### Goalie Save Percentage Board
-- **Functionality**: Shows goalie performance by save percentage
-- **Purpose**: Highlights goaltending excellence
-- **Trigger**: Displays automatically on load
-- **Progression**: Data loads → Displays sorted list by save % → Shows rank, goalie name, and save percentage
-- **Success criteria**: Clear ranking with percentage formatted properly
+- **Functionality**: Shows goalie performance by save percentage, fetched from NHL API
+- **Purpose**: Highlights goaltending excellence with live stats
+- **Trigger**: Displays automatically on load, fetches from NHL API, caches for 24 hours
+- **Progression**: Data loads from API → Displays sorted list by save % → Shows rank, goalie name, and save percentage → Data refreshes daily
+- **Success criteria**: Clear ranking with percentage formatted properly and accurate, live statistics from NHL
 
 ### Injury Report
 - **Functionality**: Lists currently injured players with injury duration
@@ -74,8 +74,11 @@ A comprehensive stats tracking application for the Vegas Golden Knights hockey t
 - **Empty Stat Categories**: Show placeholder text "No data available" if category has no players
 - **No Injuries**: Display "No players currently injured" when injury list is empty
 - **Pagination Boundaries**: Disable/hide previous arrow on first page, next arrow on last page
-- **Loading States**: Show skeleton loaders while data is being fetched
+- **Loading States**: Show skeleton loaders while data is being fetched from NHL API
 - **Long Player Names**: Truncate with ellipsis to maintain table layout
+- **API Failures**: Show error message with retry button if NHL API fails to respond
+- **Stale Data**: Display last updated timestamp, automatically refresh after 24 hours
+- **Network Offline**: Use cached data if available, show "offline" indicator
 
 ## Design Direction
 

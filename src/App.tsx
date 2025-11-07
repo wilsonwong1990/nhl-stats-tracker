@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { StatLeaderCard } from '@/components/StatLeaderCard'
 import { 
   CaretLeft, 
   CaretRight,
@@ -14,103 +16,100 @@ import {
   Lightning,
   Crosshair,
   FirstAid,
-  Timer
+  Timer,
+  ArrowClockwise,
+  Warning
 } from '@phosphor-icons/react'
+import { fetchAllVGKData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats } from '@/lib/nhl-api'
+import { toast } from 'sonner'
 
-interface Game {
-  id: string
-  opponent: string
-  date: string
-  time: string
-  isHome: boolean
+interface CachedData {
+  data: TeamStats
+  timestamp: number
 }
 
-interface PlayerStat {
-  name: string
-  value: number
-}
-
-interface InjuredPlayer {
-  name: string
-  daysOut: number
-}
+const CACHE_DURATION = 24 * 60 * 60 * 1000
 
 function App() {
   const [currentPage, setCurrentPage] = useKV<number>('schedule-page', 0)
+  const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>('vgk-team-data', null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
-  const games: Game[] = [
-    { id: '1', opponent: 'Anaheim Ducks', date: '2025-02-01', time: '7:00 PM', isHome: true },
-    { id: '2', opponent: 'Seattle Kraken', date: '2025-02-03', time: '7:30 PM', isHome: false },
-    { id: '3', opponent: 'Calgary Flames', date: '2025-02-05', time: '6:00 PM', isHome: true },
-    { id: '4', opponent: 'Edmonton Oilers', date: '2025-02-08', time: '5:00 PM', isHome: false },
-    { id: '5', opponent: 'Los Angeles Kings', date: '2025-02-10', time: '7:00 PM', isHome: true },
-    { id: '6', opponent: 'San Jose Sharks', date: '2025-02-12', time: '7:30 PM', isHome: false },
-    { id: '7', opponent: 'Vancouver Canucks', date: '2025-02-14', time: '7:00 PM', isHome: true },
-    { id: '8', opponent: 'Colorado Avalanche', date: '2025-02-16', time: '6:00 PM', isHome: false },
-    { id: '9', opponent: 'Arizona Coyotes', date: '2025-02-18', time: '7:00 PM', isHome: true },
-    { id: '10', opponent: 'Dallas Stars', date: '2025-02-20', time: '5:30 PM', isHome: false },
-    { id: '11', opponent: 'Minnesota Wild', date: '2025-02-22', time: '7:00 PM', isHome: true },
-    { id: '12', opponent: 'Winnipeg Jets', date: '2025-02-24', time: '6:00 PM', isHome: false },
-    { id: '13', opponent: 'Nashville Predators', date: '2025-02-26', time: '7:00 PM', isHome: true },
-    { id: '14', opponent: 'St. Louis Blues', date: '2025-02-28', time: '7:30 PM', isHome: false },
-    { id: '15', opponent: 'Chicago Blackhawks', date: '2025-03-02', time: '7:00 PM', isHome: true },
-    { id: '16', opponent: 'Anaheim Ducks', date: '2025-03-04', time: '7:00 PM', isHome: false },
-    { id: '17', opponent: 'Seattle Kraken', date: '2025-03-06', time: '7:30 PM', isHome: true },
-    { id: '18', opponent: 'Calgary Flames', date: '2025-03-08', time: '6:00 PM', isHome: false },
-    { id: '19', opponent: 'Edmonton Oilers', date: '2025-03-10', time: '7:00 PM', isHome: true },
-    { id: '20', opponent: 'Los Angeles Kings', date: '2025-03-12', time: '7:00 PM', isHome: false },
-  ]
+  const [games, setGames] = useState<Game[]>([])
+  const [pointLeaders, setPointLeaders] = useState<PlayerStat[]>([])
+  const [goalLeaders, setGoalLeaders] = useState<PlayerStat[]>([])
+  const [assistLeaders, setAssistLeaders] = useState<PlayerStat[]>([])
+  const [blockLeaders, setBlockLeaders] = useState<PlayerStat[]>([])
+  const [hitLeaders, setHitLeaders] = useState<PlayerStat[]>([])
+  const [goalieStats, setGoalieStats] = useState<PlayerStat[]>([])
+  const [injuries, setInjuries] = useState<InjuredPlayer[]>([])
 
-  const pointLeaders: PlayerStat[] = [
-    { name: 'Jack Eichel', value: 68 },
-    { name: 'Mark Stone', value: 54 },
-    { name: 'Jonathan Marchessault', value: 52 },
-    { name: 'William Karlsson', value: 48 },
-    { name: 'Chandler Stephenson', value: 45 },
-  ]
+  const loadData = async (forceRefresh = false) => {
+    setIsLoading(true)
+    setError(null)
 
-  const goalLeaders: PlayerStat[] = [
-    { name: 'Jonathan Marchessault', value: 28 },
-    { name: 'Jack Eichel', value: 26 },
-    { name: 'Mark Stone', value: 22 },
-    { name: 'William Karlsson', value: 20 },
-    { name: 'Reilly Smith', value: 18 },
-  ]
+    const now = Date.now()
+    const cached = cachedTeamData
 
-  const assistLeaders: PlayerStat[] = [
-    { name: 'Jack Eichel', value: 42 },
-    { name: 'Mark Stone', value: 32 },
-    { name: 'William Karlsson', value: 28 },
-    { name: 'Chandler Stephenson', value: 27 },
-    { name: 'Jonathan Marchessault', value: 24 },
-  ]
+    if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
+      setGames(cached.data.games)
+      setPointLeaders(cached.data.pointLeaders)
+      setGoalLeaders(cached.data.goalLeaders)
+      setAssistLeaders(cached.data.assistLeaders)
+      setBlockLeaders(cached.data.blockLeaders)
+      setHitLeaders(cached.data.hitLeaders)
+      setGoalieStats(cached.data.goalieStats)
+      setInjuries(cached.data.injuries)
+      setIsLoading(false)
+      return
+    }
 
-  const blockLeaders: PlayerStat[] = [
-    { name: 'Brayden McNabb', value: 142 },
-    { name: 'Alex Pietrangelo', value: 128 },
-    { name: 'Shea Theodore', value: 115 },
-    { name: 'Zach Whitecloud', value: 98 },
-    { name: 'Alec Martinez', value: 92 },
-  ]
+    try {
+      const data = await fetchAllVGKData()
+      
+      setGames(data.games)
+      setPointLeaders(data.pointLeaders)
+      setGoalLeaders(data.goalLeaders)
+      setAssistLeaders(data.assistLeaders)
+      setBlockLeaders(data.blockLeaders)
+      setHitLeaders(data.hitLeaders)
+      setGoalieStats(data.goalieStats)
+      setInjuries(data.injuries)
 
-  const hitLeaders: PlayerStat[] = [
-    { name: 'Keegan Kolesar', value: 186 },
-    { name: 'Brayden McNabb', value: 164 },
-    { name: 'William Carrier', value: 152 },
-    { name: 'Nicolas Roy', value: 138 },
-    { name: 'Zach Whitecloud', value: 124 },
-  ]
+      setCachedTeamData({
+        data,
+        timestamp: now
+      })
 
-  const goalieStats: PlayerStat[] = [
-    { name: 'Adin Hill', value: 0.918 },
-    { name: 'Logan Thompson', value: 0.912 },
-    { name: 'Laurent Brossoit', value: 0.908 },
-  ]
+      if (forceRefresh) {
+        toast.success('Data refreshed successfully')
+      }
+    } catch (err) {
+      console.error('Error loading VGK data:', err)
+      setError('Failed to load data from NHL API')
+      
+      if (cached) {
+        setGames(cached.data.games)
+        setPointLeaders(cached.data.pointLeaders)
+        setGoalLeaders(cached.data.goalLeaders)
+        setAssistLeaders(cached.data.assistLeaders)
+        setBlockLeaders(cached.data.blockLeaders)
+        setHitLeaders(cached.data.hitLeaders)
+        setGoalieStats(cached.data.goalieStats)
+        setInjuries(cached.data.injuries)
+        toast.error('Using cached data')
+      } else {
+        toast.error('Failed to load data')
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-  const injuries: InjuredPlayer[] = [
-    { name: 'Max Pacioretty', daysOut: 14 },
-    { name: 'Nolan Patrick', daysOut: 7 },
-  ]
+  useEffect(() => {
+    loadData()
+  }, [])
 
   const totalPages = Math.ceil(games.length / 10)
   const page = currentPage ?? 0
@@ -130,6 +129,14 @@ function App() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
+  const lastUpdated = cachedTeamData ? new Date(cachedTeamData.timestamp).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/Los_Angeles'
+  }) : null
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -137,7 +144,29 @@ function App() {
           <h1 className="text-3xl md:text-4xl font-bold text-accent tracking-tight">
             Vegas Golden Knights
           </h1>
-          <p className="text-muted-foreground">2024-25 Season Stats Tracker</p>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <p className="text-muted-foreground">2024-25 Season Stats Tracker</p>
+            {lastUpdated && (
+              <p className="text-xs text-muted-foreground">
+                Last updated: {lastUpdated} PST
+              </p>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => loadData(true)}
+              disabled={isLoading}
+              className="hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <ArrowClockwise className={isLoading ? 'animate-spin' : ''} size={16} weight="bold" />
+            </Button>
+          </div>
+          {error && (
+            <div className="flex items-center justify-center gap-2 text-sm text-destructive">
+              <Warning size={16} weight="bold" />
+              <span>{error}</span>
+            </div>
+          )}
         </header>
 
         <Separator className="bg-border" />
@@ -150,64 +179,80 @@ function App() {
           
           <Card>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b border-border">
-                    <tr className="text-left">
-                      <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Date</th>
-                      <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Time (PST)</th>
-                      <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Opponent</th>
-                      <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Location</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentGames.map((game, index) => (
-                      <tr 
-                        key={game.id} 
-                        className={index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'}
-                      >
-                        <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
-                        <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
-                        <td className="px-4 py-3 text-sm">{game.opponent}</td>
-                        <td className="px-4 py-3">
-                          <Badge 
-                            variant={game.isHome ? 'default' : 'secondary'}
-                            className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+              {isLoading ? (
+                <div className="p-6 space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : currentGames.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground">
+                  No upcoming games scheduled
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="border-b border-border">
+                        <tr className="text-left">
+                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Date</th>
+                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Time (PST)</th>
+                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Opponent</th>
+                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Location</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentGames.map((game, index) => (
+                          <tr 
+                            key={game.id} 
+                            className={index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'}
                           >
-                            {game.isHome ? 'Home' : 'Away'}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              <div className="flex items-center justify-between p-4 border-t border-border">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handlePrevPage}
-                  disabled={page === 0}
-                  className="hover:bg-accent hover:text-accent-foreground transition-colors"
-                >
-                  <CaretLeft size={20} weight="bold" />
-                </Button>
-                
-                <span className="text-sm text-muted-foreground">
-                  Page {page + 1} of {totalPages}
-                </span>
-                
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleNextPage}
-                  disabled={page === totalPages - 1}
-                  className="hover:bg-accent hover:text-accent-foreground transition-colors"
-                >
-                  <CaretRight size={20} weight="bold" />
-                </Button>
-              </div>
+                            <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
+                            <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
+                            <td className="px-4 py-3 text-sm">{game.opponent}</td>
+                            <td className="px-4 py-3">
+                              <Badge 
+                                variant={game.isHome ? 'default' : 'secondary'}
+                                className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+                              >
+                                {game.isHome ? 'Home' : 'Away'}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between p-4 border-t border-border">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handlePrevPage}
+                        disabled={page === 0}
+                        className="hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        <CaretLeft size={20} weight="bold" />
+                      </Button>
+                      
+                      <span className="text-sm text-muted-foreground">
+                        Page {page + 1} of {totalPages}
+                      </span>
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleNextPage}
+                        disabled={page === totalPages - 1}
+                        className="hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        <CaretRight size={20} weight="bold" />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </section>
@@ -215,154 +260,49 @@ function App() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Offensive Leaders</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <TrendUp className="text-accent" size={20} weight="bold" />
-                  Point Leaders
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {pointLeaders.map((player, index) => (
-                  <div key={player.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-muted-foreground w-6">
-                        #{index + 1}
-                      </span>
-                      <span className="text-sm">{player.name}</span>
-                    </div>
-                    <span className="text-sm font-medium tabular-nums text-accent">
-                      {player.value}
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Target className="text-accent" size={20} weight="bold" />
-                  Goal Leaders
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {goalLeaders.map((player, index) => (
-                  <div key={player.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-muted-foreground w-6">
-                        #{index + 1}
-                      </span>
-                      <span className="text-sm">{player.name}</span>
-                    </div>
-                    <span className="text-sm font-medium tabular-nums text-accent">
-                      {player.value}
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <HandsClapping className="text-accent" size={20} weight="bold" />
-                  Assist Leaders
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {assistLeaders.map((player, index) => (
-                  <div key={player.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-muted-foreground w-6">
-                        #{index + 1}
-                      </span>
-                      <span className="text-sm">{player.name}</span>
-                    </div>
-                    <span className="text-sm font-medium tabular-nums text-accent">
-                      {player.value}
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <StatLeaderCard
+              title="Point Leaders"
+              icon={<TrendUp className="text-accent" size={20} weight="bold" />}
+              leaders={pointLeaders}
+              isLoading={isLoading}
+            />
+            <StatLeaderCard
+              title="Goal Leaders"
+              icon={<Target className="text-accent" size={20} weight="bold" />}
+              leaders={goalLeaders}
+              isLoading={isLoading}
+            />
+            <StatLeaderCard
+              title="Assist Leaders"
+              icon={<HandsClapping className="text-accent" size={20} weight="bold" />}
+              leaders={assistLeaders}
+              isLoading={isLoading}
+            />
           </div>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Defensive & Goalie Leaders</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Shield className="text-accent" size={20} weight="bold" />
-                  Block Leaders
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {blockLeaders.map((player, index) => (
-                  <div key={player.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-muted-foreground w-6">
-                        #{index + 1}
-                      </span>
-                      <span className="text-sm">{player.name}</span>
-                    </div>
-                    <span className="text-sm font-medium tabular-nums text-accent">
-                      {player.value}
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Lightning className="text-accent" size={20} weight="bold" />
-                  Hit Leaders
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {hitLeaders.map((player, index) => (
-                  <div key={player.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-muted-foreground w-6">
-                        #{index + 1}
-                      </span>
-                      <span className="text-sm">{player.name}</span>
-                    </div>
-                    <span className="text-sm font-medium tabular-nums text-accent">
-                      {player.value}
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Crosshair className="text-accent" size={20} weight="bold" />
-                  Goalie Save %
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {goalieStats.map((player, index) => (
-                  <div key={player.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-muted-foreground w-6">
-                        #{index + 1}
-                      </span>
-                      <span className="text-sm">{player.name}</span>
-                    </div>
-                    <span className="text-sm font-medium tabular-nums text-accent">
-                      {(player.value * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <StatLeaderCard
+              title="Block Leaders"
+              icon={<Shield className="text-accent" size={20} weight="bold" />}
+              leaders={blockLeaders}
+              isLoading={isLoading}
+            />
+            <StatLeaderCard
+              title="Hit Leaders"
+              icon={<Lightning className="text-accent" size={20} weight="bold" />}
+              leaders={hitLeaders}
+              isLoading={isLoading}
+            />
+            <StatLeaderCard
+              title="Goalie Save %"
+              icon={<Crosshair className="text-accent" size={20} weight="bold" />}
+              leaders={goalieStats}
+              isLoading={isLoading}
+              formatValue={(value) => `${(value * 100).toFixed(1)}%`}
+            />
           </div>
         </section>
 
@@ -374,7 +314,16 @@ function App() {
           
           <Card>
             <CardContent className="p-6">
-              {injuries.length === 0 ? (
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[...Array(2)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                  ))}
+                </div>
+              ) : injuries.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No players currently injured</p>
               ) : (
                 <div className="space-y-3">
