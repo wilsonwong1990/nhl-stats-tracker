@@ -1,4 +1,4 @@
-const NHL_API_BASE = 'https://api-web.nhle.com/v1'
+const NHL_API_BASE = '/nhl-api/v1'
 const VGK_TEAM_ABBREV = 'VGK'
 
 export interface Game {
@@ -112,7 +112,7 @@ export async function fetchVGKSchedule(): Promise<Game[]> {
   
   try {
     const currentDate = new Date().toISOString().split('T')[0]
-    const url = `${NHL_API_BASE}/club-schedule-season/${VGK_TEAM_ABBREV}/20242025`
+    const url = `${NHL_API_BASE}/club-schedule-season/${VGK_TEAM_ABBREV}/20252026`
     console.log('Fetching schedule from:', url)
     
     const response = await fetch(url, {
