@@ -18,9 +18,25 @@ import {
   FirstAid,
   Timer,
   ArrowClockwise,
-  Warning
+  Warning,
+  PlusCircle,
+  MinusCircle,
+  Scales,
+  Plus,
+  Users,
+  NumberZero,
+  NumberOne, 
+  NumberTwo,
+  NumberThree,
+  NumberFour,
+  NumberFive,
+  NumberSix,
+  NumberSeven,
+  NumberEight,
+  NumberNine,
+  Star
 } from '@phosphor-icons/react'
-import { fetchAllVGKData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats } from '@/lib/nhl-api'
+import { fetchAllVGKData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo } from '@/lib/nhl-api'
 import { toast } from 'sonner'
 
 interface CachedData {
@@ -40,10 +56,12 @@ function App() {
   const [pointLeaders, setPointLeaders] = useState<PlayerStat[]>([])
   const [goalLeaders, setGoalLeaders] = useState<PlayerStat[]>([])
   const [assistLeaders, setAssistLeaders] = useState<PlayerStat[]>([])
-  const [blockLeaders, setBlockLeaders] = useState<PlayerStat[]>([])
-  const [hitLeaders, setHitLeaders] = useState<PlayerStat[]>([])
+  const [plusMinusLeaders, setPlusMinusLeaders] = useState<PlayerStat[]>([])
+  const [avgShiftsLeaders, setAvgShiftsLeaders] = useState<PlayerStat[]>([])
   const [goalieStats, setGoalieStats] = useState<PlayerStat[]>([])
   const [injuries, setInjuries] = useState<InjuredPlayer[]>([])
+  const [roster, setRoster] = useState<RosterPlayer[]>([])
+  const [standings, setStandings] = useState<StandingsInfo>({ conferencePosition: 0, isWildcard: false })
 
   const loadData = async (forceRefresh = false) => {
     setIsLoading(true)
@@ -58,10 +76,12 @@ function App() {
       setPointLeaders(cached.data.pointLeaders)
       setGoalLeaders(cached.data.goalLeaders)
       setAssistLeaders(cached.data.assistLeaders)
-      setBlockLeaders(cached.data.blockLeaders)
-      setHitLeaders(cached.data.hitLeaders)
+      setPlusMinusLeaders(cached.data.plusMinusLeaders)
+      setAvgShiftsLeaders(cached.data.avgShiftsLeaders)
       setGoalieStats(cached.data.goalieStats)
       setInjuries(cached.data.injuries)
+      setRoster(cached.data.roster)
+      setStandings(cached.data.standings)
       setIsLoading(false)
       return
     }
@@ -75,10 +95,12 @@ function App() {
       setPointLeaders(data.pointLeaders)
       setGoalLeaders(data.goalLeaders)
       setAssistLeaders(data.assistLeaders)
-      setBlockLeaders(data.blockLeaders)
-      setHitLeaders(data.hitLeaders)
+      setPlusMinusLeaders(data.plusMinusLeaders)
+      setAvgShiftsLeaders(data.avgShiftsLeaders)
       setGoalieStats(data.goalieStats)
       setInjuries(data.injuries)
+      setRoster(data.roster)
+      setStandings(data.standings)
 
       setCachedTeamData({
         data,
@@ -99,10 +121,12 @@ function App() {
         setPointLeaders(cached.data.pointLeaders)
         setGoalLeaders(cached.data.goalLeaders)
         setAssistLeaders(cached.data.assistLeaders)
-        setBlockLeaders(cached.data.blockLeaders)
-        setHitLeaders(cached.data.hitLeaders)
+        setPlusMinusLeaders(cached.data.plusMinusLeaders)
+        setAvgShiftsLeaders(cached.data.avgShiftsLeaders)
         setGoalieStats(cached.data.goalieStats)
         setInjuries(cached.data.injuries)
+        setRoster(cached.data.roster)
+        setStandings(cached.data.standings)
         toast.error('Using cached data - API unavailable')
       } else {
         toast.error('Failed to load data - please try again')
@@ -141,6 +165,30 @@ function App() {
     minute: '2-digit',
     timeZone: 'America/Los_Angeles'
   }) : null
+
+  const getStandingsIcon = (standingsInfo: StandingsInfo) => {
+    if (standingsInfo.conferencePosition === 0) return null;
+    
+    if (standingsInfo.isWildcard) {
+      return <Star className="text-yellow-500" size={20} weight="fill" />;
+    }
+    
+    const position = standingsInfo.conferencePosition;
+    const iconProps = { size: 20, weight: "fill" as const, className: "text-accent" };
+    
+    switch (position) {
+      case 1: return <NumberOne {...iconProps} />;
+      case 2: return <NumberTwo {...iconProps} />;
+      case 3: return <NumberThree {...iconProps} />;
+      case 4: return <NumberFour {...iconProps} />;
+      case 5: return <NumberFive {...iconProps} />;
+      case 6: return <NumberSix {...iconProps} />;
+      case 7: return <NumberSeven {...iconProps} />;
+      case 8: return <NumberEight {...iconProps} />;
+      case 9: return <NumberNine {...iconProps} />;
+      default: return null;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
@@ -262,7 +310,7 @@ function App() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Offensive Leaders</h2>
+          <h2 className="text-xl font-semibold">Stats</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatLeaderCard
               title="Point Leaders"
@@ -286,18 +334,17 @@ function App() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Defensive & Goalie Leaders</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatLeaderCard
-              title="Block Leaders"
-              icon={<Shield className="text-accent" size={20} weight="bold" />}
-              leaders={blockLeaders}
+              title="Plus/Minus Leaders"
+              icon={<Plus className="text-accent" size={20} weight="bold" />}
+              leaders={plusMinusLeaders}
               isLoading={isLoading}
             />
             <StatLeaderCard
-              title="Hit Leaders"
+              title="Avg Shifts/Game"
               icon={<Lightning className="text-accent" size={20} weight="bold" />}
-              leaders={hitLeaders}
+              leaders={avgShiftsLeaders}
               isLoading={isLoading}
             />
             <StatLeaderCard
@@ -333,9 +380,66 @@ function App() {
                 <div className="space-y-3">
                   {injuries.map((injury) => (
                     <div key={injury.name} className="flex items-center justify-between">
-                      <span className="text-sm">{injury.name}</span>
-                      <Badge variant="destructive">
-                        {injury.daysOut} {injury.daysOut === 1 ? 'day' : 'days'}
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{injury.name}</span>
+                        {injury.status && (
+                          <span className="text-xs text-muted-foreground">{injury.status}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end">
+                        {injury.expectedReturn ? (
+                          <Badge variant="destructive" className="text-xs">
+                            Returns: {injury.expectedReturn}
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-xs">
+                            {injury.daysOut} {injury.daysOut === 1 ? 'day' : 'days'}
+                          </Badge>
+                        )}
+                        {injury.injuryType && (
+                          <span className="text-xs text-muted-foreground mt-1">{injury.injuryType}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Users className="text-primary" size={24} weight="bold" />
+            <h2 className="text-xl font-semibold">Roster</h2>
+          </div>
+          
+          <Card>
+            <CardContent className="p-6">
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {[...Array(12)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 border rounded">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                      <Skeleton className="h-6 w-8" />
+                    </div>
+                  ))}
+                </div>
+              ) : roster.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Roster information unavailable</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {roster.map((player) => (
+                    <div key={`${player.name}-${player.number}`} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors">
+                      <div>
+                        <div className="text-sm font-medium">{player.name}</div>
+                        <div className="text-xs text-muted-foreground">{player.position}</div>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        #{player.number}
                       </Badge>
                     </div>
                   ))}
