@@ -1,5 +1,8 @@
 const NHL_API_BASE = '/nhl-api/v1'
-const VGK_TEAM_ABBREV = 'VGK'
+const DEFAULT_SEASON = '20252026'
+// Optional mock data import (only used when env flag is set)
+import getMockData from './mock-data'
+import { DEFAULT_TEAM_ID, getTeamInfo, type TeamId, type TeamInfo } from './teams'
 
 
 export interface Game {
@@ -8,6 +11,10 @@ export interface Game {
   date: string
   time: string
   isHome: boolean
+  homeScore?: number
+  awayScore?: number
+  gameState?: string // 'FUT' for future, 'LIVE' for live, 'FINAL' or 'OFF' for completed
+  lastPeriodType?: string // 'REG', 'OT', 'SO', etc.
 }
 
 export interface PlayerStat {
@@ -27,11 +34,17 @@ export interface RosterPlayer {
   name: string
   position: string
   number: number
+  captaincy?: 'C' | 'A' | null
 }
 
 export interface StandingsInfo {
   conferencePosition: number
   isWildcard: boolean
+  divisionPosition?: number
+  wins?: number
+  losses?: number
+  otLosses?: number
+  points?: number
 }
 
 export interface TeamStats {
@@ -57,103 +70,27 @@ function convertToPST(dateString: string): string {
   })
 }
 
-function getMockData(): TeamStats {
-  const today = new Date()
-  const mockGames: Game[] = Array.from({ length: 15 }, (_, i) => {
-    const gameDate = new Date(today)
-    gameDate.setDate(today.getDate() + i + 1)
-    const isHome = i % 2 === 0
-    const opponents = [
-      'Avalanche', 'Kings', 'Oilers', 'Sharks', 'Ducks', 'Canucks', 'Jets', 'Wild',
-      'Blues', 'Stars', 'Predators', 'Blackhawks', 'Red Wings', 'Blue Jackets',
-      'Penguins', 'Capitals', 'Rangers', 'Islanders', 'Devils', 'Flyers',
-      'Bruins', 'Sabres', 'Maple Leafs', 'Senators', 'Canadiens', 'Lightning',
-      'Panthers', 'Hurricanes', 'Kraken', 'Flames', 'Mammoth'
-    ]
-    
-    return {
-      id: `mock-${i}`,
-      opponent: opponents[i % opponents.length],
-      date: gameDate.toISOString().split('T')[0],
-      time: i % 3 === 0 ? '7:00 PM' : i % 3 === 1 ? '7:30 PM' : '6:00 PM',
-      isHome
-    }
-  })
-
-  return {
-    games: mockGames,
-    pointLeaders: [
-      { name: 'Jack Eichel', value: 45 },
-      { name: 'Mark Stone', value: 38 },
-      { name: 'Ivan Barbashev', value: 32 },
-      { name: 'Tomas Hertl', value: 28 },
-      { name: 'William Karlsson', value: 24 }
-    ],
-    goalLeaders: [
-      { name: 'Jack Eichel', value: 22 },
-      { name: 'Ivan Barbashev', value: 18 },
-      { name: 'Mark Stone', value: 16 },
-      { name: 'Tomas Hertl', value: 14 },
-      { name: 'Jonathan Marchessault', value: 12 }
-    ],
-    assistLeaders: [
-      { name: 'Jack Eichel', value: 23 },
-      { name: 'Mark Stone', value: 22 },
-      { name: 'Shea Theodore', value: 20 },
-      { name: 'Tomas Hertl', value: 14 },
-      { name: 'William Karlsson', value: 12 }
-    ],
-    plusMinusLeaders: [
-      { name: 'Jack Eichel', value: 15 },
-      { name: 'Shea Theodore', value: 12 },
-      { name: 'Alex Pietrangelo', value: 8 },
-      { name: 'Mark Stone', value: 6 },
-      { name: 'Ivan Barbashev', value: 4 }
-    ],
-    avgShiftsLeaders: [
-      { name: 'Jack Eichel', value: 22.5 },
-      { name: 'Shea Theodore', value: 25.8 },
-      { name: 'Alex Pietrangelo', value: 24.2 },
-      { name: 'Mark Stone', value: 21.1 },
-      { name: 'William Karlsson', value: 20.3 }
-    ],
-    goalieStats: [
-      { name: 'Adin Hill', value: 0.912 },
-      { name: 'Logan Thompson', value: 0.908 },
-      { name: 'Laurent Brossoit', value: 0.895 }
-    ],
-    injuries: [
-      { name: 'Mark Stone', daysOut: 14 },
-      { name: 'Zach Whitecloud', daysOut: 7 }
-    ],
-    roster: [
-      { name: 'Jack Eichel', position: 'C', number: 9 },
-      { name: 'Mark Stone', position: 'RW', number: 61 },
-      { name: 'Ivan Barbashev', position: 'LW', number: 49 },
-      { name: 'Tomas Hertl', position: 'C', number: 48 },
-      { name: 'William Karlsson', position: 'C', number: 71 },
-      { name: 'Shea Theodore', position: 'D', number: 27 },
-      { name: 'Alex Pietrangelo', position: 'D', number: 7 },
-      { name: 'Brayden McNabb', position: 'D', number: 3 },
-      { name: 'Nicolas Hague', position: 'D', number: 14 },
-      { name: 'Adin Hill', position: 'G', number: 33 },
-      { name: 'Laurent Brossoit', position: 'G', number: 39 }
-    ],
-    standings: {
-      conferencePosition: 3,
-      isWildcard: false
-    }
-  }
+function getGameDateInPST(dateString: string): string {
+  // Convert the full UTC datetime to PST and extract just the date
+  const date = new Date(dateString)
+  const pstDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date)
+  return pstDate // Returns YYYY-MM-DD format
 }
 
-export async function fetchVGKSchedule(): Promise<Game[]> {
+// Mock data moved to separate file: mock-data.ts
+
+export async function fetchTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON): Promise<Game[]> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 10000)
   
   try {
-    const currentDate = new Date().toISOString().split('T')[0]
-    const url = `${NHL_API_BASE}/club-schedule-season/${VGK_TEAM_ABBREV}/20252026`
-    console.log('Fetching schedule from:', url)
+    const url = `${NHL_API_BASE}/club-schedule-season/${team.nhlAbbrev}/${season}`
+    console.log(`Fetching full season schedule for ${team.fullName} from:`, url)
     
     const response = await fetch(url, {
       signal: controller.signal,
@@ -171,41 +108,82 @@ export async function fetchVGKSchedule(): Promise<Game[]> {
     
     const data = await response.json()
     console.log('Schedule data received, games:', data.games?.length || 0)
+    
+    // Log the first completed game's ALL fields for debugging
+    if (data.games && data.games.length > 0) {
+      const completedGame = data.games.find((g: any) => g.gameState !== 'FUT' && g.gameState !== 'LIVE')
+      if (completedGame) {
+        console.log('===== FIRST COMPLETED GAME FROM SCHEDULE =====')
+        console.log(JSON.stringify(completedGame, null, 2))
+        console.log('===== END COMPLETED GAME =====')
+      }
+    }
+    
     const games: Game[] = []
     
     if (data.games && Array.isArray(data.games)) {
       for (const game of data.games) {
-        const gameDate = game.gameDate.split('T')[0]
-        if (gameDate >= currentDate) {
-          const isHome = game.homeTeam?.abbrev === VGK_TEAM_ABBREV
-          const opponent = isHome ? game.awayTeam?.placeName?.default : game.homeTeam?.placeName?.default
-          const opponentAbbrev = isHome ? game.awayTeam?.abbrev : game.homeTeam?.abbrev
-          
-          games.push({
-            id: game.id.toString(),
-            opponent: opponent || opponentAbbrev || 'TBD',
-            date: game.gameDate.split('T')[0],
-            time: convertToPST(game.startTimeUTC),
-            isHome
-          })
+        // Skip preseason games
+        const gameType = game.gameType || 0
+        if (gameType === 1) {
+          continue // Skip preseason (gameType 1)
         }
+        
+        const isHome = game.homeTeam?.abbrev === team.nhlAbbrev
+        const opponentTeam = isHome ? game.awayTeam : game.homeTeam
+        const opponentPlaceName = opponentTeam?.placeName?.default || ''
+        const opponentCommonName = opponentTeam?.commonName?.default || ''
+        const opponentAbbrev = opponentTeam?.abbrev || ''
+        const opponent = opponentPlaceName && opponentCommonName 
+          ? `${opponentPlaceName} ${opponentCommonName}`
+          : opponentPlaceName || opponentAbbrev || 'TBD'
+        
+        // Get scores if game is completed
+        const homeScore = game.homeTeam?.score
+        const awayScore = game.awayTeam?.score
+        const gameState = game.gameState || 'FUT'
+        
+        const lastPeriodTypeCandidates = [
+          game.gameOutcome?.lastPeriodType,
+          game.gameOutcomeLastPeriodType,
+          game.gameOutcome?.gameOutcome,
+          game.gameOutcomeType,
+          game.periodDescriptor?.periodType,
+          game.periodDescriptor?.periodTypeName
+        ] as Array<unknown>
+
+        const lastPeriodType = lastPeriodTypeCandidates.find((value): value is string => {
+          return typeof value === 'string' && value.trim().length > 0
+        })
+
+        games.push({
+          id: game.id.toString(),
+          opponent: opponent,
+          date: getGameDateInPST(game.startTimeUTC), // Convert UTC start time to PST date
+          time: convertToPST(game.startTimeUTC),
+          isHome,
+          homeScore: homeScore,
+          awayScore: awayScore,
+          gameState: gameState,
+          lastPeriodType: lastPeriodType ? lastPeriodType.trim().toUpperCase() : undefined
+        })
       }
     }
     
-    console.log('Successfully parsed', games.length, 'upcoming games')
+    console.log(`Successfully parsed ${games.length} total games (excluding preseason) for ${team.nhlAbbrev}`)
     return games
   } catch (error) {
     clearTimeout(timeout)
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error('Timeout fetching VGK schedule')
+      console.error(`Timeout fetching ${team.nhlAbbrev} schedule`)
       throw new Error('Request timeout - please try again')
     }
-    console.error('Error fetching VGK schedule:', error)
+    console.error(`Error fetching ${team.nhlAbbrev} schedule:`, error)
     throw error
   }
 }
 
-async function fetchStandings(): Promise<StandingsInfo> {
+async function fetchStandings(teamInfo: TeamInfo): Promise<StandingsInfo> {
   try {
     // NHL API endpoint for current standings
     const standingsUrl = `${NHL_API_BASE}/standings/now`
@@ -222,6 +200,9 @@ async function fetchStandings(): Promise<StandingsInfo> {
     
     const data = await response.json()
     console.log('Standings data received')
+    console.log('===== FULL STANDINGS RESPONSE STRUCTURE =====')
+    console.log(JSON.stringify(data, null, 2))
+    console.log('===== END STANDINGS RESPONSE =====')
     
     // Find Vegas Golden Knights in the standings
     const conferences = data.standings || []
@@ -229,32 +210,43 @@ async function fetchStandings(): Promise<StandingsInfo> {
       if (conference.teams) {
         for (let i = 0; i < conference.teams.length; i++) {
           const team = conference.teams[i]
-          if (team.teamAbbrev?.default === VGK_TEAM_ABBREV || team.teamAbbrev === VGK_TEAM_ABBREV) {
-            const position = i + 1
-            // In NHL, typically positions 9+ in conference are wildcard spots
-            const isWildcard = position >= 9
+          const abbrev = team.teamAbbrev?.default || team.teamAbbrev
+          if (abbrev === teamInfo.nhlAbbrev) {
+            console.log(`===== ${teamInfo.fullName} OBJECT FROM STANDINGS =====`)
+            console.log(JSON.stringify(team, null, 2))
+            console.log('===== END TEAM OBJECT =====')
             
-            console.log(`VGK found at conference position ${position}, wildcard: ${isWildcard}`)
-            return { conferencePosition: position, isWildcard }
+            const position = i + 1
+            const isWildcard = position >= 9
+            // Attempt to derive division position if divisionSequence or divisionRank present
+            const divisionPosition = team.divisionSequence || team.divisionRank || 0
+            const wins = team.wins || team.winsOverall || team.record?.wins || 0
+            const losses = team.losses || team.lossesOverall || team.record?.losses || 0
+            const otLosses = team.otLosses || team.overtimeLosses || team.record?.ot || 0
+            console.log(`${teamInfo.nhlAbbrev} standings parsed -> Conf: ${position}, Div: ${divisionPosition}, Record: ${wins}-${losses}-${otLosses}, Wildcard: ${isWildcard}`)
+            return { conferencePosition: position, isWildcard, divisionPosition, wins, losses, otLosses }
           }
         }
       }
     }
-    
-    console.log('VGK not found in standings, using default')
-    return { conferencePosition: 0, isWildcard: false }
+    console.log(`${teamInfo.nhlAbbrev} not found in standings, using default`)
+    return { conferencePosition: 0, isWildcard: false, divisionPosition: 0, wins: 0, losses: 0, otLosses: 0 }
   } catch (error) {
     console.error('Error fetching standings:', error)
-    return { conferencePosition: 0, isWildcard: false }
+    return { conferencePosition: 0, isWildcard: false, divisionPosition: 0, wins: 0, losses: 0, otLosses: 0 }
   }
 }
 
-async function fetchPuckPediaInjuries(): Promise<InjuredPlayer[]> {
+async function fetchPuckPediaInjuries(team: TeamInfo): Promise<InjuredPlayer[]> {
+  if (!team.puckpediaSlug) {
+    console.warn(`No PuckPedia slug configured for ${team.fullName}`)
+    return []
+  }
   try {
-    console.log('Fetching VGK injury data from PuckPedia')
+    console.log(`Fetching ${team.fullName} injury data from PuckPedia`)
     
     // Try their API endpoint instead of HTML scraping
-    const response = await fetch('/puckpedia-api/api/teams/vegas-golden-knights/injuries', {
+    const response = await fetch(`/puckpedia-api/api/teams/${team.puckpediaSlug}/injuries`, {
       headers: { 
         'Accept': 'application/json',
         'Referer': 'https://puckpedia.com/'
@@ -265,7 +257,7 @@ async function fetchPuckPediaInjuries(): Promise<InjuredPlayer[]> {
       console.error('PuckPedia API fetch failed:', response.status, response.statusText)
       
       // Try the HTML page with better headers
-      const htmlResponse = await fetch('/puckpedia-api/team/vegas-golden-knights/injuries', {
+      const htmlResponse = await fetch(`/puckpedia-api/team/${team.puckpediaSlug}/injuries`, {
         headers: { 
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
@@ -291,7 +283,7 @@ async function fetchPuckPediaInjuries(): Promise<InjuredPlayer[]> {
     return parseJSONInjuries(data)
     
   } catch (error) {
-    console.error('Error fetching PuckPedia VGK injuries:', error)
+    console.error(`Error fetching PuckPedia ${team.nhlAbbrev} injuries:`, error)
     return []
   }
 }
@@ -399,16 +391,16 @@ function parseJSONInjuries(data: any): InjuredPlayer[] {
   return injuries
 }
 
-export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
+export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): Promise<Omit<TeamStats, 'games'>> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
   
   try {
     // Try multiple endpoints to get the most comprehensive stats
     const endpoints = [
-      `${NHL_API_BASE}/club-stats/${VGK_TEAM_ABBREV}/20252026/2`,
-      `${NHL_API_BASE}/club-stats-season/${VGK_TEAM_ABBREV}/20252026`,
-      `${NHL_API_BASE}/roster/${VGK_TEAM_ABBREV}/20252026`,
+      `${NHL_API_BASE}/club-stats/${team.nhlAbbrev}/${season}/2`,
+      `${NHL_API_BASE}/club-stats-season/${team.nhlAbbrev}/${season}`,
+      `${NHL_API_BASE}/roster/${team.nhlAbbrev}/${season}`,
     ]
     
     // Fetch NHL stats, PuckPedia injuries, and standings in parallel
@@ -421,8 +413,8 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
           })
         )
       ),
-      fetchPuckPediaInjuries(),
-      fetchStandings()
+      fetchPuckPediaInjuries(team),
+      fetchStandings(team)
     ])
     
     clearTimeout(timeout)
@@ -431,7 +423,7 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
     let playerData: any = null
     let rosterData: any = null
     let injuries: InjuredPlayer[] = []
-    let standingsInfo: StandingsInfo = { conferencePosition: 0, isWildcard: false }
+    let standingsInfo: StandingsInfo = { conferencePosition: 0, isWildcard: false, divisionPosition: 0, wins: 0, losses: 0, otLosses: 0, points: 0 }
     
     // Extract NHL API responses
     const responses = nhelpResponses.status === 'fulfilled' ? nhelpResponses.value : []
@@ -444,26 +436,22 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
       console.log('✗ PuckPedia injuries failed:', puckpediaInjuries.reason)
       injuries = [{ name: 'No current injuries reported', daysOut: 0 }]
     }
-    
-    // Extract standings data
     if (standings.status === 'fulfilled') {
       standingsInfo = standings.value
       console.log('✓ Standings loaded: position', standingsInfo.conferencePosition, 'wildcard:', standingsInfo.isWildcard)
     } else {
       console.log('✗ Standings failed:', standings.reason)
-      standingsInfo = { conferencePosition: 0, isWildcard: false }
+      standingsInfo = { conferencePosition: 0, isWildcard: false, divisionPosition: 0, wins: 0, losses: 0, otLosses: 0, points: 0 }
     }
-    
-    // Check first endpoint (club-stats)
     if (responses[0]?.status === 'fulfilled' && responses[0].value.ok) {
       data = await responses[0].value.json()
-      console.log('Club stats data received, skaters:', data.skaters?.length || 0, 'goalies:', data.goalies?.length || 0)
+      console.log(`${team.nhlAbbrev} club stats data received, skaters:`, data.skaters?.length || 0, 'goalies:', data.goalies?.length || 0)
     }
     
     // Check second endpoint (club-stats-season)
     if (responses[1]?.status === 'fulfilled' && responses[1].value.ok) {
       playerData = await responses[1].value.json()
-      console.log('Season stats data received:', Object.keys(playerData || {}))
+      console.log(`${team.nhlAbbrev} season stats data received:`, Object.keys(playerData || {}))
       console.log('Sample season data:', playerData?.skaters?.[0] || playerData?.players?.[0])
     }
     
@@ -575,6 +563,19 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
           return 6; // Unknown positions go last
         };
 
+        const normalizePosition = (raw: string | undefined): string => {
+          if (!raw) return 'F';
+          const p = raw.toString().trim().toUpperCase();
+          if (['LW','LEFT WING','L'].includes(p)) return 'LW';
+          if (['RW','RIGHT WING','R'].includes(p)) return 'RW';
+          if (['C','CENTER'].includes(p)) return 'C';
+          if (['D','DEF','DEFENSE','DEFENCEMAN'].includes(p)) return 'D';
+          if (['G','GOALIE','GOALTENDER'].includes(p)) return 'G';
+          // Some APIs use F for forwards
+           if (['F','FORWARD'].includes(p)) return 'F';
+          return p.length <= 3 ? p : 'F';
+        };
+
         // Try to build roster from dedicated roster endpoint first
         if (rosterData) {
           console.log('Building roster from roster endpoint')
@@ -583,32 +584,34 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
             ...(rosterData.defensemen || []),
             ...(rosterData.goalies || [])
           ];
-          
-          if (allPlayers.length > 0) {
-            return allPlayers.slice(0, 25).map((player: any) => {
-              const name = `${player.firstName?.default || ''} ${player.lastName?.default || ''}`.trim();
-              const position = player.position || player.positionCode || 'F';
-              const number = player.sweaterNumber || player.number || player.jerseyNumber || player.uniformNumber || 0;
-              
-              // Debug log for first few players from roster
-              if (allPlayers.indexOf(player) < 3) {
-                console.log('Roster player data:', {
-                  name,
-                  position,
-                  number,
-                  availableFields: Object.keys(player)
-                });
-              }
-              
-              return { name, position, number };
-            })
-            .sort((a, b) => {
+          const seen = new Set<string>();
+          const mapped = allPlayers.map((player: any, idx: number) => {
+            const name = `${player.firstName?.default || ''} ${player.lastName?.default || ''}`.trim();
+            const positionRaw = player.position || player.positionCode || player.primaryPosition || 'F';
+            const position = normalizePosition(positionRaw);
+            const number = player.sweaterNumber || player.number || player.jerseyNumber || player.uniformNumber || 0;
+            const captaincy = player.captaincy || null;
+            if (idx < 3) {
+              console.log('Roster player data (raw->normalized):', {
+                name,
+                positionRaw,
+                position,
+                number,
+                captaincy,
+                availableFields: Object.keys(player)
+              });
+            }
+            return { name, position, number, captaincy };
+          }).filter(p => {
+            if (seen.has(p.name)) return false;
+            seen.add(p.name);
+            return true;
+          });
+          if (mapped.length > 0) {
+            return mapped.sort((a, b) => {
               const orderA = getPositionOrder(a.position);
               const orderB = getPositionOrder(b.position);
-              if (orderA !== orderB) {
-                return orderA - orderB;
-              }
-              // If same position, sort by name alphabetically
+              if (orderA !== orderB) return orderA - orderB;
               return a.name.localeCompare(b.name);
             });
           }
@@ -616,30 +619,31 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
         
         // Fallback to stats data
         console.log('Building roster from stats data')
-        return skaters.slice(0, 20).map((player: any) => {
+        const seen = new Set<string>();
+        const mapped = skaters.map((player: any, idx: number) => {
           const name = `${player.firstName?.default || ''} ${player.lastName?.default || ''}`.trim();
-          const position = player.position || player.positionCode || 'F';
+          const positionRaw = player.position || player.positionCode || player.primaryPosition || 'F';
+          const position = normalizePosition(positionRaw);
           const number = player.sweaterNumber || player.number || player.jerseyNumber || player.uniformNumber || 0;
-          
-          // Debug log for the first few players
-          if (skaters.indexOf(player) < 3) {
-            console.log('Stats player data for roster:', {
+          if (idx < 3) {
+            console.log('Stats player data for roster (raw->normalized):', {
               name,
+              positionRaw,
               position,
               number,
               availableFields: Object.keys(player)
             });
           }
-          
           return { name, position, number };
-        })
-        .sort((a, b) => {
+        }).filter(p => {
+          if (seen.has(p.name)) return false;
+          seen.add(p.name);
+          return true;
+        });
+        return mapped.sort((a, b) => {
           const orderA = getPositionOrder(a.position);
           const orderB = getPositionOrder(b.position);
-          if (orderA !== orderB) {
-            return orderA - orderB;
-          }
-          // If same position, sort by name alphabetically
+          if (orderA !== orderB) return orderA - orderB;
           return a.name.localeCompare(b.name);
         });
       })(),
@@ -648,20 +652,27 @@ export async function fetchVGKStats(): Promise<Omit<TeamStats, 'games'>> {
   } catch (error) {
     clearTimeout(timeout)
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error('Timeout fetching VGK stats')
+      console.error(`Timeout fetching ${team.nhlAbbrev} stats`)
       throw new Error('Request timeout - please try again')
     }
-    console.error('Error fetching VGK stats:', error)
+    console.error(`Error fetching ${team.nhlAbbrev} stats:`, error)
     throw error
   }
 }
 
-export async function fetchAllVGKData(): Promise<TeamStats> {
-  console.log('Starting NHL API data fetch...')
+export async function fetchAllTeamData(inputTeam: TeamInfo | TeamId, season = DEFAULT_SEASON): Promise<TeamStats> {
+  const team = typeof inputTeam === 'string' ? getTeamInfo(inputTeam) : inputTeam
+  const useMock = import.meta.env?.VITE_USE_MOCK === 'true'
+  if (useMock) {
+    console.warn('[TEAM] Using mock data (VITE_USE_MOCK=true). Live NHL API calls skipped.')
+    const data = getMockData(team.id)
+    return data
+  }
+  console.log(`Starting NHL API data fetch for ${team.nhlAbbrev}...`)
   
   const [gamesResult, statsResult] = await Promise.allSettled([
-    fetchVGKSchedule(),
-    fetchVGKStats()
+    fetchTeamSchedule(team, season),
+    fetchTeamStats(team, season)
   ])
   
   let games: Game[] = []
@@ -669,7 +680,7 @@ export async function fetchAllVGKData(): Promise<TeamStats> {
   
   if (gamesResult.status === 'fulfilled') {
     games = gamesResult.value
-    console.log('✓ Schedule loaded successfully:', games.length, 'games')
+    console.log(`✓ Schedule loaded successfully for ${team.nhlAbbrev}:`, games.length, 'games')
   } else {
     console.error('✗ Schedule fetch failed:', gamesResult.reason)
     throw new Error('Unable to fetch schedule data from NHL API - check console for details')
@@ -677,7 +688,7 @@ export async function fetchAllVGKData(): Promise<TeamStats> {
   
   if (statsResult.status === 'fulfilled') {
     stats = statsResult.value
-    console.log('✓ Stats loaded successfully')
+    console.log(`✓ Stats loaded successfully for ${team.nhlAbbrev}`)
   } else {
     console.error('✗ Stats fetch failed:', statsResult.reason)
     throw new Error('Unable to fetch stats data from NHL API - check console for details')

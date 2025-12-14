@@ -13,6 +13,18 @@
 }
 
 :root {
+  /**
+   * CSS Custom Properties for Theme Colors
+   * 
+   * These variables define the primary color scheme using OKLCH color space:
+   * - --background: Dark background color with low lightness (20%), minimal chroma (1%), 
+   *   and a blue-purple hue (260 degrees). Creates a deep, neutral dark tone.
+   * - --foreground: Light foreground color with high lightness (95%), no chroma (0), 
+   *   resulting in a near-white neutral color for text and UI elements.
+   * 
+   * OKLCH provides better perceptual uniformity compared to traditional color spaces,
+   * ensuring consistent visual contrast and accessibility across different displays.
+   */
   --background: oklch(0.20 0.01 260);
   --foreground: oklch(0.95 0 0);
   

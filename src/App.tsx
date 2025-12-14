@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,9 +34,15 @@ import {
   NumberSeven,
   NumberEight,
   NumberNine,
-  Star
+  Star,
+  CheckCircle,
+  XCircle,
+  Circle,
+  LinkSimple
 } from '@phosphor-icons/react'
-import { fetchAllVGKData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo } from '@/lib/nhl-api'
+import { fetchAllTeamData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo } from '@/lib/nhl-api'
+import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
 interface CachedData {
@@ -47,8 +53,11 @@ interface CachedData {
 const CACHE_DURATION = 24 * 60 * 60 * 1000
 
 function App() {
-  const [currentPage, setCurrentPage] = useKV<number>('schedule-page', 0)
-  const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>('vgk-team-data', null)
+  const teams = useMemo(() => listTeams(), [])
+  const [selectedTeamId, setSelectedTeamId] = useKV<TeamId>('selected-team', DEFAULT_TEAM_ID)
+  const team = useMemo(() => getTeamInfo(selectedTeamId), [selectedTeamId])
+  const [currentPage, setCurrentPage] = useKV<number>(`schedule-page-${team.id}`, 0)
+  const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>(`team-data-${team.id}`, null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -71,7 +80,7 @@ function App() {
     const cached = cachedTeamData
 
     if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
-      console.log('Using cached data')
+      console.log(`Using cached data for ${team.nhlAbbrev}`)
       setGames(cached.data.games)
       setPointLeaders(cached.data.pointLeaders)
       setGoalLeaders(cached.data.goalLeaders)
@@ -87,8 +96,8 @@ function App() {
     }
 
     try {
-      console.log('Fetching fresh data from NHL API...')
-      const data = await fetchAllVGKData()
+      console.log(`Fetching fresh data from NHL API for ${team.nhlAbbrev}...`)
+      const data = await fetchAllTeamData(team)
       
       console.log('Data loaded successfully:', data)
       setGames(data.games)
@@ -111,7 +120,7 @@ function App() {
         toast.success('Data refreshed successfully')
       }
     } catch (err) {
-      console.error('Error loading VGK data:', err)
+      console.error(`Error loading ${team.nhlAbbrev} data:`, err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to load data from NHL API'
       setError(errorMessage)
       
@@ -137,13 +146,70 @@ function App() {
   }
 
   useEffect(() => {
-    loadData()
+    applyTeamTheme(team)
+  }, [team])
+
+  useEffect(() => {
+    return () => {
+      resetTeamTheme()
+    }
   }, [])
+
+  useEffect(() => {
+    setCurrentPage(0)
+    loadData(true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team.id])
+
+  // Set page to show upcoming games when data loads
+  useEffect(() => {
+    if (games.length === 0) return
+
+    const todayParts = new Date().toLocaleDateString('en-US', {
+      timeZone: 'America/Los_Angeles',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).split('/').map(part => part.padStart(2, '0'))
+    const todayPST = `${todayParts[2]}-${todayParts[0]}-${todayParts[1]}`
+
+    const upcomingGameIndex = games.findIndex(game => game.date >= todayPST)
+    const targetPage = upcomingGameIndex !== -1
+      ? Math.floor(upcomingGameIndex / 10)
+      : Math.max(0, Math.ceil(games.length / 10) - 1)
+
+    if ((currentPage ?? 0) !== targetPage) {
+      setCurrentPage(targetPage)
+    }
+  }, [games, currentPage, setCurrentPage])
 
   const totalPages = Math.ceil(games.length / 10)
   const page = currentPage ?? 0
   const startIndex = page * 10
   const currentGames = games.slice(startIndex, startIndex + 10)
+
+  // Helper function to determine if VGK won the game
+  const isVGKWin = (game: Game): boolean => {
+    if (game.homeScore === undefined || game.awayScore === undefined || game.gameState === 'FUT') return false
+    if (game.isHome) {
+      return game.homeScore > game.awayScore
+    } else {
+      return game.awayScore > game.homeScore
+    }
+  }
+
+  const isOvertimeDecision = (game: Game): boolean => {
+    const type = game.lastPeriodType
+    if (!type) return false
+    const normalized = type.trim().toUpperCase()
+    if (normalized === 'REG') return false
+    return normalized === 'OT' || normalized === 'SO' || normalized === 'S/O' || normalized === 'SHOOTOUT' || normalized === 'OVERTIME'
+  }
+
+  // Helper function to check if game is completed
+  const isGameCompleted = (game: Game): boolean => {
+    return game.gameState !== 'FUT' && game.gameState !== 'LIVE' && (game.homeScore !== undefined && game.awayScore !== undefined)
+  }
 
   const handlePrevPage = () => {
     setCurrentPage((current) => Math.max(0, (current ?? 0) - 1))
@@ -155,6 +221,7 @@ function App() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
+    date.setDate(date.getDate() + 1) // Add one day to correct timezone offset
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
@@ -190,13 +257,85 @@ function App() {
     }
   };
 
+  // Compute record (wins-losses) from completed games
+  const completedGames = games.filter(isGameCompleted)
+  const derivedWins = completedGames.filter(isVGKWin).length
+  const derivedLosses = completedGames.length - derivedWins
+  const derivedOTLosses = completedGames.filter(game => !isVGKWin(game) && isOvertimeDecision(game)).length
+  const derivedRegulationLosses = Math.max(0, derivedLosses - derivedOTLosses)
+  const standingsWins = typeof standings.wins === 'number' ? standings.wins : undefined
+  const standingsLosses = typeof standings.losses === 'number' ? standings.losses : undefined
+  const standingsOTLosses = typeof standings.otLosses === 'number' ? standings.otLosses : undefined
+  const hasStandingsRecord =
+    standingsWins !== undefined &&
+    standingsLosses !== undefined &&
+    standingsOTLosses !== undefined &&
+    (standingsWins + standingsLosses + standingsOTLosses) > 0
+
+  // Prefer official standings record if available and non-empty, otherwise derive from schedule
+  const wins = hasStandingsRecord ? standingsWins! : derivedWins
+  const losses = hasStandingsRecord ? standingsLosses! : derivedRegulationLosses
+  const otLosses = hasStandingsRecord ? standingsOTLosses! : derivedOTLosses
+  // Always show three-part record per request (wins-losses-OT losses)
+  const record = `${wins}-${losses}-${otLosses}`
+
+  const hasOfficialPoints = typeof standings.points === 'number' && standings.points > 0
+  const points = hasOfficialPoints
+    ? standings.points!
+    : (wins * 2) + otLosses
+
+  const ordinal = (n: number) => {
+    if (!n) return ''
+    const s = ['th','st','nd','rd']
+    const v = n % 100
+    return n + (s[(v - 20) % 10] || s[v] || s[0])
+  }
+
+  const injurySlug = team.puckpediaSlug ?? team.fullName.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/(^-|-$)/g, '')
+  const injuryUrl = `https://puckpedia.com/team/${injurySlug}/injuries`
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="text-center space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold text-accent tracking-tight">Vegas Golden Knights</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight text-center">
+            2024-2025 NHL Season Stats Tracker
+          </h1>
+          <Select
+            value={team.id}
+            onValueChange={(value) => {
+              setSelectedTeamId(value as TeamId)
+              toast.success(`${getTeamInfo(value).fullName} selected`)
+            }}
+          >
+            <SelectTrigger className="w-full max-w-xl mx-auto bg-transparent border-none shadow-none p-0 focus:ring-0 focus:outline-none focus-visible:ring-0 data-[placeholder]:text-center">
+              <h2 className="text-2xl md:text-3xl font-semibold text-accent tracking-tight text-center w-full">
+                <SelectValue placeholder="Select a team" className="block w-full text-center" />
+              </h2>
+            </SelectTrigger>
+            <SelectContent className="max-h-[320px]">
+              {teams.map((option) => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.fullName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {import.meta.env?.VITE_USE_MOCK === 'true' && (
+            <div className="mx-auto max-w-xl px-4 py-2 rounded-md bg-red-600/15 border border-red-700 text-red-500 text-xs font-semibold flex items-center justify-center gap-2">
+              <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              Mock data active – live NHL stats disabled
+            </div>
+          )}
+          {(completedGames.length > 0 || wins > 0) && (
+            <div className="text-sm text-muted-foreground flex flex-col items-center gap-1">
+              <span>Record: {record}</span>
+              {typeof points === 'number' && (
+                <span>Points: {points}</span>
+              )}
+            </div>
+          )}
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            <p className="text-muted-foreground">2024-25 Season Stats Tracker</p>
             {lastUpdated && (
               <p className="text-xs text-muted-foreground">
                 Last updated: {lastUpdated} PST
@@ -226,7 +365,7 @@ function App() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Timer className="text-accent" size={24} weight="bold" />
-            <h2 className="text-xl font-semibold">Upcoming Games</h2>
+            <h2 className="text-xl font-semibold">Games</h2>
           </div>
           
           <Card>
@@ -239,7 +378,7 @@ function App() {
                 </div>
               ) : currentGames.length === 0 ? (
                 <div className="p-6 text-center text-muted-foreground">
-                  No upcoming games scheduled
+                  No games scheduled
                 </div>
               ) : (
                 <>
@@ -251,6 +390,8 @@ function App() {
                           <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Time (PST)</th>
                           <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Opponent</th>
                           <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Location</th>
+                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Score</th>
+                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Result</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -269,6 +410,29 @@ function App() {
                               >
                                 {game.isHome ? 'Home' : 'Away'}
                               </Badge>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-medium tabular-nums">
+                              {(game.gameState === 'LIVE' || isGameCompleted(game)) && game.homeScore !== undefined && game.awayScore !== undefined ? (
+                                game.isHome 
+                                  ? `${game.homeScore} - ${game.awayScore}`
+                                  : `${game.awayScore} - ${game.homeScore}`
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              {game.gameState === 'LIVE' ? (
+                                <div className="flex items-center gap-1">
+                                  <Circle className="text-red-500 animate-pulse" size={12} weight="fill" />
+                                  <span className="text-xs text-red-500 font-medium">LIVE</span>
+                                </div>
+                              ) : isGameCompleted(game) ? (
+                                isVGKWin(game) ? (
+                                  <CheckCircle className="text-green-500" size={20} weight="fill" />
+                                ) : (
+                                  <XCircle className="text-red-500" size={20} weight="fill" />
+                                )
+                              ) : null}
                             </td>
                           </tr>
                         ))}
@@ -357,56 +521,6 @@ function App() {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <FirstAid className="text-destructive" size={24} weight="bold" />
-            <h2 className="text-xl font-semibold">Injury Report</h2>
-          </div>
-          
-          <Card>
-            <CardContent className="p-6">
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[...Array(2)].map((_, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-6 w-20" />
-                    </div>
-                  ))}
-                </div>
-              ) : injuries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No players currently injured</p>
-              ) : (
-                <div className="space-y-3">
-                  {injuries.map((injury) => (
-                    <div key={injury.name} className="flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{injury.name}</span>
-                        {injury.status && (
-                          <span className="text-xs text-muted-foreground">{injury.status}</span>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end">
-                        {injury.expectedReturn ? (
-                          <Badge variant="destructive" className="text-xs">
-                            Returns: {injury.expectedReturn}
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive" className="text-xs">
-                            {injury.daysOut} {injury.daysOut === 1 ? 'day' : 'days'}
-                          </Badge>
-                        )}
-                        {injury.injuryType && (
-                          <span className="text-xs text-muted-foreground mt-1">{injury.injuryType}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
 
         <section className="space-y-4">
           <div className="flex items-center gap-2">
@@ -431,20 +545,72 @@ function App() {
               ) : roster.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Roster information unavailable</p>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {roster.map((player) => (
-                    <div key={`${player.name}-${player.number}`} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors">
-                      <div>
-                        <div className="text-sm font-medium">{player.name}</div>
-                        <div className="text-xs text-muted-foreground">{player.position}</div>
+                (() => {
+                  const forwards = roster.filter(p => ['C','LW','RW','F'].includes(p.position))
+                  const defense = roster.filter(p => p.position === 'D')
+                  const goalies = roster.filter(p => p.position === 'G')
+                  const Section = ({ title, players }: { title: string; players: typeof roster }) => (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">{title}</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {players.map(player => (
+                          <div key={`${player.name}-${player.number}`} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <div>
+                                <div className="text-sm font-medium">{player.name}</div>
+                                <div className="text-xs text-muted-foreground">{player.position}</div>
+                              </div>
+                              {player.captaincy && (
+                                <Badge 
+                                  variant="default" 
+                                  className={`text-xs font-bold ${
+                                    player.captaincy === 'C' 
+                                      ? 'bg-yellow-600 text-white' 
+                                      : 'bg-yellow-700 text-white'
+                                  }`}
+                                >
+                                  {player.captaincy}
+                                </Badge>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="text-xs">#{player.number}</Badge>
+                          </div>
+                        ))}
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        #{player.number}
-                      </Badge>
                     </div>
-                  ))}
-                </div>
+                  )
+                  return (
+                    <div className="space-y-6">
+                      <Section title="Forwards" players={forwards} />
+                      <Section title="Defensemen" players={defense} />
+                      <Section title="Goalies" players={goalies} />
+                    </div>
+                  )
+                })()
               )}
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <LinkSimple className="text-accent" size={24} weight="bold" />
+            <h2 className="text-xl font-semibold">Links</h2>
+          </div>
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-1">
+                <a
+                  href={injuryUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-accent hover:underline flex items-center gap-2"
+                >
+                  <FirstAid size={16} weight="bold" className="text-destructive" />
+                  Injury Report (PuckPedia)
+                </a>
+                <p className="text-xs text-muted-foreground">External source for current injuries</p>
+              </div>
             </CardContent>
           </Card>
         </section>
