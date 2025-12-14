@@ -188,8 +188,8 @@ function App() {
   const startIndex = page * 10
   const currentGames = games.slice(startIndex, startIndex + 10)
 
-  // Helper function to determine if VGK won the game
-  const isVGKWin = (game: Game): boolean => {
+  // Helper function to determine if the selected team won the game
+  const isSelectedTeamWin = (game: Game): boolean => {
     if (game.homeScore === undefined || game.awayScore === undefined || game.gameState === 'FUT') return false
     if (game.isHome) {
       return game.homeScore > game.awayScore
@@ -259,9 +259,9 @@ function App() {
 
   // Compute record (wins-losses) from completed games
   const completedGames = games.filter(isGameCompleted)
-  const derivedWins = completedGames.filter(isVGKWin).length
+  const derivedWins = completedGames.filter(isSelectedTeamWin).length
   const derivedLosses = completedGames.length - derivedWins
-  const derivedOTLosses = completedGames.filter(game => !isVGKWin(game) && isOvertimeDecision(game)).length
+  const derivedOTLosses = completedGames.filter(game => !isSelectedTeamWin(game) && isOvertimeDecision(game)).length
   const derivedRegulationLosses = Math.max(0, derivedLosses - derivedOTLosses)
   const standingsWins = typeof standings.wins === 'number' ? standings.wins : undefined
   const standingsLosses = typeof standings.losses === 'number' ? standings.losses : undefined
@@ -427,7 +427,7 @@ function App() {
                                   <span className="text-xs text-red-500 font-medium">LIVE</span>
                                 </div>
                               ) : isGameCompleted(game) ? (
-                                isVGKWin(game) ? (
+                                isSelectedTeamWin(game) ? (
                                   <CheckCircle className="text-green-500" size={20} weight="fill" />
                                 ) : (
                                   <XCircle className="text-red-500" size={20} weight="fill" />

@@ -1,14 +1,14 @@
 // Centralized mock data for development/reference only.
 // Import interfaces from nhl-api to preserve types.
 import { type Game, type PlayerStat, type InjuredPlayer, type RosterPlayer, type StandingsInfo, type TeamStats } from './nhl-api'
-import { getTeamInfo, type TeamId } from './teams'
+import { DEFAULT_TEAM_ID, getTeamInfo, type TeamId } from './teams'
 
 /**
  * getMockData returns a fully-populated TeamStats object with placeholder values.
  * This is separated from nhl-api.ts to keep production API code clean.
  * NOTE: Avoid using this in production paths; prefer real API data.
  */
-export function getMockData(teamId: TeamId = 'VGK'): TeamStats {
+export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
   const team = getTeamInfo(teamId)
   const today = new Date()
   const mockGames: Game[] = Array.from({ length: 15 }, (_, i) => {
@@ -32,7 +32,7 @@ export function getMockData(teamId: TeamId = 'VGK'): TeamStats {
     }
   })
 
-  const basePlayers = teamId === 'VGK'
+  const basePlayers = team.id === DEFAULT_TEAM_ID
     ? {
         pointLeaders: [
           { name: 'Jack Eichel', value: 45 },

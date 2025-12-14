@@ -204,7 +204,7 @@ async function fetchStandings(teamInfo: TeamInfo): Promise<StandingsInfo> {
     console.log(JSON.stringify(data, null, 2))
     console.log('===== END STANDINGS RESPONSE =====')
     
-    // Find Vegas Golden Knights in the standings
+    // Find the requested team in the standings
     const conferences = data.standings || []
     for (const conference of conferences) {
       if (conference.teams) {
