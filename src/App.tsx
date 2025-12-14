@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatLeaderCard } from '@/components/StatLeaderCard'
 import { 
+  Activity,
   CaretLeft, 
   CaretRight,
   TrendUp,
@@ -178,10 +179,8 @@ function App() {
       ? Math.floor(upcomingGameIndex / 10)
       : Math.max(0, Math.ceil(games.length / 10) - 1)
 
-    if ((currentPage ?? 0) !== targetPage) {
-      setCurrentPage(targetPage)
-    }
-  }, [games, currentPage, setCurrentPage])
+    setCurrentPage(targetPage)
+  }, [games, setCurrentPage])
 
   const totalPages = Math.ceil(games.length / 10)
   const page = currentPage ?? 0
@@ -263,6 +262,7 @@ function App() {
   const derivedLosses = completedGames.length - derivedWins
   const derivedOTLosses = completedGames.filter(game => !isSelectedTeamWin(game) && isOvertimeDecision(game)).length
   const derivedRegulationLosses = Math.max(0, derivedLosses - derivedOTLosses)
+  const gamesRemaining = games.filter(game => !isGameCompleted(game) && game.gameState !== 'LIVE').length
   const standingsWins = typeof standings.wins === 'number' ? standings.wins : undefined
   const standingsLosses = typeof standings.losses === 'number' ? standings.losses : undefined
   const standingsOTLosses = typeof standings.otLosses === 'number' ? standings.otLosses : undefined
@@ -365,7 +365,7 @@ function App() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Timer className="text-accent" size={24} weight="bold" />
-            <h2 className="text-xl font-semibold">Games</h2>
+            <h2 className="text-xl font-semibold">Games Remaining: {gamesRemaining}</h2>
           </div>
           
           <Card>
@@ -474,7 +474,10 @@ function App() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Stats</h2>
+          <div className="flex items-center gap-2">
+            <Activity className="text-accent" size={24} weight="bold" />
+            <h2 className="text-xl font-semibold">Stats</h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatLeaderCard
               title="Point Leaders"

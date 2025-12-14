@@ -585,9 +585,11 @@ export const TEAMS: readonly TeamInfo[] = [
   }
 ]
 
-const DEFAULT_TEAM = TEAMS[0]
+const DEFAULT_TEAM_ID_FALLBACK: TeamId = 'VGK'
 
-export const DEFAULT_TEAM_ID: TeamId = (DEFAULT_TEAM?.id ?? 'ANA') as TeamId
+const DEFAULT_TEAM = TEAMS.find(team => team.id === DEFAULT_TEAM_ID_FALLBACK) ?? TEAMS[0]
+
+export const DEFAULT_TEAM_ID: TeamId = (DEFAULT_TEAM?.id ?? DEFAULT_TEAM_ID_FALLBACK) as TeamId
 
 const TEAM_MAP: Record<TeamId, TeamInfo> = TEAMS.reduce((acc, team) => {
   acc[team.id] = team
