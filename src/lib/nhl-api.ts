@@ -20,6 +20,17 @@ export interface Game {
 export interface PlayerStat {
   name: string
   value: number
+  position?: string
+  goals?: number
+  assists?: number
+  points?: number
+  powerPlayGoals?: number
+  powerPlayPoints?: number
+  shorthandedGoals?: number
+  shorthandedPoints?: number
+  gameWinningGoals?: number
+  shootingPctg?: number
+  gamesPlayed?: number
 }
 
 export interface InjuredPlayer {
@@ -35,6 +46,16 @@ export interface RosterPlayer {
   position: string
   number: number
   captaincy?: 'C' | 'A' | null
+  goals?: number
+  assists?: number
+  points?: number
+  powerPlayGoals?: number
+  powerPlayPoints?: number
+  shorthandedGoals?: number
+  shorthandedPoints?: number
+  gameWinningGoals?: number
+  shootingPctg?: number
+  gamesPlayed?: number
 }
 
 export interface StandingsInfo {
@@ -486,7 +507,18 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
       .slice(0, 5)
       .map(p => ({
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
-        value: p.points || 0
+        value: p.points || 0,
+        position: p.position || p.positionCode || 'F',
+        goals: p.goals || 0,
+        assists: p.assists || 0,
+        points: p.points || 0,
+        powerPlayGoals: p.powerPlayGoals || p.ppGoals || 0,
+        powerPlayPoints: p.powerPlayPoints || p.ppPoints || 0,
+        shorthandedGoals: p.shorthandedGoals || p.shGoals || 0,
+        shorthandedPoints: p.shorthandedPoints || p.shPoints || 0,
+        gameWinningGoals: p.gameWinningGoals || p.gwGoals || 0,
+        shootingPctg: p.shootingPctg || p.shootingPercentage || 0,
+        gamesPlayed: p.gamesPlayed || p.games || 0
       }))
     
     const goalLeaders = [...skaters]
@@ -494,7 +526,18 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
       .slice(0, 5)
       .map(p => ({
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
-        value: p.goals || 0
+        value: p.goals || 0,
+        position: p.position || p.positionCode || 'F',
+        goals: p.goals || 0,
+        assists: p.assists || 0,
+        points: p.points || 0,
+        powerPlayGoals: p.powerPlayGoals || p.ppGoals || 0,
+        powerPlayPoints: p.powerPlayPoints || p.ppPoints || 0,
+        shorthandedGoals: p.shorthandedGoals || p.shGoals || 0,
+        shorthandedPoints: p.shorthandedPoints || p.shPoints || 0,
+        gameWinningGoals: p.gameWinningGoals || p.gwGoals || 0,
+        shootingPctg: p.shootingPctg || p.shootingPercentage || 0,
+        gamesPlayed: p.gamesPlayed || p.games || 0
       }))
     
     const assistLeaders = [...skaters]
@@ -502,7 +545,18 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
       .slice(0, 5)
       .map(p => ({
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
-        value: p.assists || 0
+        value: p.assists || 0,
+        position: p.position || p.positionCode || 'F',
+        goals: p.goals || 0,
+        assists: p.assists || 0,
+        points: p.points || 0,
+        powerPlayGoals: p.powerPlayGoals || p.ppGoals || 0,
+        powerPlayPoints: p.powerPlayPoints || p.ppPoints || 0,
+        shorthandedGoals: p.shorthandedGoals || p.shGoals || 0,
+        shorthandedPoints: p.shorthandedPoints || p.shPoints || 0,
+        gameWinningGoals: p.gameWinningGoals || p.gwGoals || 0,
+        shootingPctg: p.shootingPctg || p.shootingPercentage || 0,
+        gamesPlayed: p.gamesPlayed || p.games || 0
       }))
     
     const plusMinusLeaders = [...skaters]
@@ -510,7 +564,18 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
       .slice(0, 5)
       .map(p => ({
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
-        value: p.plusMinus || p.plus_minus || p.plusMinusValue || 0
+        value: p.plusMinus || p.plus_minus || p.plusMinusValue || 0,
+        position: p.position || p.positionCode || 'F',
+        goals: p.goals || 0,
+        assists: p.assists || 0,
+        points: p.points || 0,
+        powerPlayGoals: p.powerPlayGoals || p.ppGoals || 0,
+        powerPlayPoints: p.powerPlayPoints || p.ppPoints || 0,
+        shorthandedGoals: p.shorthandedGoals || p.shGoals || 0,
+        shorthandedPoints: p.shorthandedPoints || p.shPoints || 0,
+        gameWinningGoals: p.gameWinningGoals || p.gwGoals || 0,
+        shootingPctg: p.shootingPctg || p.shootingPercentage || 0,
+        gamesPlayed: p.gamesPlayed || p.games || 0
       }))
     
     console.log('Plus/minus leaders parsed:', plusMinusLeaders.length, 'players')
@@ -520,7 +585,18 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
       .slice(0, 5)
       .map(p => ({
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
-        value: parseFloat((p.avgShiftsPerGame || p.avgShiftDuration || p.shiftDurationAvg || 0).toFixed(1))
+        value: parseFloat((p.avgShiftsPerGame || p.avgShiftDuration || p.shiftDurationAvg || 0).toFixed(1)),
+        position: p.position || p.positionCode || 'F',
+        goals: p.goals || 0,
+        assists: p.assists || 0,
+        points: p.points || 0,
+        powerPlayGoals: p.powerPlayGoals || p.ppGoals || 0,
+        powerPlayPoints: p.powerPlayPoints || p.ppPoints || 0,
+        shorthandedGoals: p.shorthandedGoals || p.shGoals || 0,
+        shorthandedPoints: p.shorthandedPoints || p.shPoints || 0,
+        gameWinningGoals: p.gameWinningGoals || p.gwGoals || 0,
+        shootingPctg: p.shootingPctg || p.shootingPercentage || 0,
+        gamesPlayed: p.gamesPlayed || p.games || 0
       }))
       
     console.log('Average shifts leaders parsed:', avgShiftsLeaders.length, 'players')
@@ -591,6 +667,12 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
             const position = normalizePosition(positionRaw);
             const number = player.sweaterNumber || player.number || player.jerseyNumber || player.uniformNumber || 0;
             const captaincy = player.captaincy || null;
+            
+            // Try to find matching stats from skaters array
+            const stats = skaters.find(s => 
+              `${s.firstName?.default || ''} ${s.lastName?.default || ''}`.trim() === name
+            );
+            
             if (idx < 3) {
               console.log('Roster player data (raw->normalized):', {
                 name,
@@ -598,10 +680,26 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
                 position,
                 number,
                 captaincy,
+                hasStats: !!stats,
                 availableFields: Object.keys(player)
               });
             }
-            return { name, position, number, captaincy };
+            return { 
+              name, 
+              position, 
+              number, 
+              captaincy,
+              goals: stats?.goals || 0,
+              assists: stats?.assists || 0,
+              points: stats?.points || 0,
+              powerPlayGoals: stats?.powerPlayGoals || stats?.ppGoals || 0,
+              powerPlayPoints: stats?.powerPlayPoints || stats?.ppPoints || 0,
+              shorthandedGoals: stats?.shorthandedGoals || stats?.shGoals || 0,
+              shorthandedPoints: stats?.shorthandedPoints || stats?.shPoints || 0,
+              gameWinningGoals: stats?.gameWinningGoals || stats?.gwGoals || 0,
+              shootingPctg: stats?.shootingPctg || stats?.shootingPercentage || 0,
+              gamesPlayed: stats?.gamesPlayed || stats?.games || 0
+            };
           }).filter(p => {
             if (seen.has(p.name)) return false;
             seen.add(p.name);
@@ -634,7 +732,21 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
               availableFields: Object.keys(player)
             });
           }
-          return { name, position, number };
+          return { 
+            name, 
+            position, 
+            number,
+            goals: player.goals || 0,
+            assists: player.assists || 0,
+            points: player.points || 0,
+            powerPlayGoals: player.powerPlayGoals || player.ppGoals || 0,
+            powerPlayPoints: player.powerPlayPoints || player.ppPoints || 0,
+            shorthandedGoals: player.shorthandedGoals || player.shGoals || 0,
+            shorthandedPoints: player.shorthandedPoints || player.shPoints || 0,
+            gameWinningGoals: player.gameWinningGoals || player.gwGoals || 0,
+            shootingPctg: player.shootingPctg || player.shootingPercentage || 0,
+            gamesPlayed: player.gamesPlayed || player.games || 0
+          };
         }).filter(p => {
           if (seen.has(p.name)) return false;
           seen.add(p.name);
