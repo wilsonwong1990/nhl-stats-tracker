@@ -49,8 +49,7 @@ export function PlayerModal({ isOpen, onClose, player }: PlayerModalProps) {
     { 
       label: 'Shooting Percentage', 
       value: formatPercentage(player.shootingPctg), 
-      icon: <Crosshair className="text-accent" size={18} weight="bold" />,
-      isPercentage: true
+      icon: <Crosshair className="text-accent" size={18} weight="bold" />
     },
     { 
       label: 'Shorthanded Goals', 
@@ -102,7 +101,7 @@ export function PlayerModal({ isOpen, onClose, player }: PlayerModalProps) {
                   <span className="text-sm font-medium">{stat.label}</span>
                 </div>
                 <span className="text-sm font-bold tabular-nums text-accent">
-                  {stat.isPercentage ? stat.value : stat.value}
+                  {stat.value}
                 </span>
               </div>
             ))}
