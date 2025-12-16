@@ -35,61 +35,61 @@ export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
   const basePlayers = team.id === DEFAULT_TEAM_ID
     ? {
         pointLeaders: [
-          { name: 'Jack Eichel', value: 45 },
-          { name: 'Mark Stone', value: 38 },
-          { name: 'Ivan Barbashev', value: 32 },
-          { name: 'Tomas Hertl', value: 28 },
-          { name: 'William Karlsson', value: 24 }
+          { name: 'Jack Eichel', value: 45, position: 'C', goals: 22, assists: 23, points: 45, powerPlayGoals: 8, powerPlayPoints: 18, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 4, shootingPctg: 0.157, gamesPlayed: 35 },
+          { name: 'Mark Stone', value: 38, position: 'RW', goals: 16, assists: 22, points: 38, powerPlayGoals: 5, powerPlayPoints: 14, shorthandedGoals: 0, shorthandedPoints: 1, gameWinningGoals: 3, shootingPctg: 0.128, gamesPlayed: 33 },
+          { name: 'Ivan Barbashev', value: 32, position: 'LW', goals: 18, assists: 14, points: 32, powerPlayGoals: 6, powerPlayPoints: 12, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 2, shootingPctg: 0.145, gamesPlayed: 35 },
+          { name: 'Tomas Hertl', value: 28, position: 'C', goals: 14, assists: 14, points: 28, powerPlayGoals: 4, powerPlayPoints: 10, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 2, shootingPctg: 0.112, gamesPlayed: 32 },
+          { name: 'William Karlsson', value: 24, position: 'C', goals: 12, assists: 12, points: 24, powerPlayGoals: 2, powerPlayPoints: 6, shorthandedGoals: 2, shorthandedPoints: 4, gameWinningGoals: 1, shootingPctg: 0.098, gamesPlayed: 35 }
         ],
         goalLeaders: [
-          { name: 'Jack Eichel', value: 22 },
-          { name: 'Ivan Barbashev', value: 18 },
-          { name: 'Mark Stone', value: 16 },
-          { name: 'Tomas Hertl', value: 14 },
-          { name: 'Jonathan Marchessault', value: 12 }
+          { name: 'Jack Eichel', value: 22, position: 'C', goals: 22, assists: 23, points: 45, powerPlayGoals: 8, powerPlayPoints: 18, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 4, shootingPctg: 0.157, gamesPlayed: 35 },
+          { name: 'Ivan Barbashev', value: 18, position: 'LW', goals: 18, assists: 14, points: 32, powerPlayGoals: 6, powerPlayPoints: 12, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 2, shootingPctg: 0.145, gamesPlayed: 35 },
+          { name: 'Mark Stone', value: 16, position: 'RW', goals: 16, assists: 22, points: 38, powerPlayGoals: 5, powerPlayPoints: 14, shorthandedGoals: 0, shorthandedPoints: 1, gameWinningGoals: 3, shootingPctg: 0.128, gamesPlayed: 33 },
+          { name: 'Tomas Hertl', value: 14, position: 'C', goals: 14, assists: 14, points: 28, powerPlayGoals: 4, powerPlayPoints: 10, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 2, shootingPctg: 0.112, gamesPlayed: 32 },
+          { name: 'Jonathan Marchessault', value: 12, position: 'RW', goals: 12, assists: 10, points: 22, powerPlayGoals: 3, powerPlayPoints: 8, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 1, shootingPctg: 0.105, gamesPlayed: 30 }
         ],
         assistLeaders: [
-          { name: 'Jack Eichel', value: 23 },
-          { name: 'Mark Stone', value: 22 },
-          { name: 'Shea Theodore', value: 20 },
-          { name: 'Tomas Hertl', value: 14 },
-          { name: 'William Karlsson', value: 12 }
+          { name: 'Jack Eichel', value: 23, position: 'C', goals: 22, assists: 23, points: 45, powerPlayGoals: 8, powerPlayPoints: 18, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 4, shootingPctg: 0.157, gamesPlayed: 35 },
+          { name: 'Mark Stone', value: 22, position: 'RW', goals: 16, assists: 22, points: 38, powerPlayGoals: 5, powerPlayPoints: 14, shorthandedGoals: 0, shorthandedPoints: 1, gameWinningGoals: 3, shootingPctg: 0.128, gamesPlayed: 33 },
+          { name: 'Shea Theodore', value: 20, position: 'D', goals: 8, assists: 20, points: 28, powerPlayGoals: 2, powerPlayPoints: 12, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 1, shootingPctg: 0.065, gamesPlayed: 35 },
+          { name: 'Tomas Hertl', value: 14, position: 'C', goals: 14, assists: 14, points: 28, powerPlayGoals: 4, powerPlayPoints: 10, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 2, shootingPctg: 0.112, gamesPlayed: 32 },
+          { name: 'William Karlsson', value: 12, position: 'C', goals: 12, assists: 12, points: 24, powerPlayGoals: 2, powerPlayPoints: 6, shorthandedGoals: 2, shorthandedPoints: 4, gameWinningGoals: 1, shootingPctg: 0.098, gamesPlayed: 35 }
         ],
         plusMinusLeaders: [
-          { name: 'Jack Eichel', value: 15 },
-          { name: 'Shea Theodore', value: 12 },
-          { name: 'Alex Pietrangelo', value: 8 },
-          { name: 'Mark Stone', value: 6 },
-          { name: 'Ivan Barbashev', value: 4 }
+          { name: 'Jack Eichel', value: 15, position: 'C', goals: 22, assists: 23, points: 45, powerPlayGoals: 8, powerPlayPoints: 18, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 4, shootingPctg: 0.157, gamesPlayed: 35 },
+          { name: 'Shea Theodore', value: 12, position: 'D', goals: 8, assists: 20, points: 28, powerPlayGoals: 2, powerPlayPoints: 12, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 1, shootingPctg: 0.065, gamesPlayed: 35 },
+          { name: 'Alex Pietrangelo', value: 8, position: 'D', goals: 5, assists: 15, points: 20, powerPlayGoals: 1, powerPlayPoints: 8, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0.042, gamesPlayed: 35 },
+          { name: 'Mark Stone', value: 6, position: 'RW', goals: 16, assists: 22, points: 38, powerPlayGoals: 5, powerPlayPoints: 14, shorthandedGoals: 0, shorthandedPoints: 1, gameWinningGoals: 3, shootingPctg: 0.128, gamesPlayed: 33 },
+          { name: 'Ivan Barbashev', value: 4, position: 'LW', goals: 18, assists: 14, points: 32, powerPlayGoals: 6, powerPlayPoints: 12, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 2, shootingPctg: 0.145, gamesPlayed: 35 }
         ],
         avgShiftsLeaders: [
-          { name: 'Jack Eichel', value: 22.5 },
-          { name: 'Shea Theodore', value: 25.8 },
-          { name: 'Alex Pietrangelo', value: 24.2 },
-          { name: 'Mark Stone', value: 21.1 },
-          { name: 'William Karlsson', value: 20.3 }
+          { name: 'Jack Eichel', value: 22.5, position: 'C', goals: 22, assists: 23, points: 45, powerPlayGoals: 8, powerPlayPoints: 18, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 4, shootingPctg: 0.157, gamesPlayed: 35 },
+          { name: 'Shea Theodore', value: 25.8, position: 'D', goals: 8, assists: 20, points: 28, powerPlayGoals: 2, powerPlayPoints: 12, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 1, shootingPctg: 0.065, gamesPlayed: 35 },
+          { name: 'Alex Pietrangelo', value: 24.2, position: 'D', goals: 5, assists: 15, points: 20, powerPlayGoals: 1, powerPlayPoints: 8, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0.042, gamesPlayed: 35 },
+          { name: 'Mark Stone', value: 21.1, position: 'RW', goals: 16, assists: 22, points: 38, powerPlayGoals: 5, powerPlayPoints: 14, shorthandedGoals: 0, shorthandedPoints: 1, gameWinningGoals: 3, shootingPctg: 0.128, gamesPlayed: 33 },
+          { name: 'William Karlsson', value: 20.3, position: 'C', goals: 12, assists: 12, points: 24, powerPlayGoals: 2, powerPlayPoints: 6, shorthandedGoals: 2, shorthandedPoints: 4, gameWinningGoals: 1, shootingPctg: 0.098, gamesPlayed: 35 }
         ],
         goalieStats: [
-          { name: 'Adin Hill', value: 0.912 },
-          { name: 'Logan Thompson', value: 0.908 },
-          { name: 'Laurent Brossoit', value: 0.895 }
+          { name: 'Adin Hill', value: 0.912, position: 'G', goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 20 },
+          { name: 'Logan Thompson', value: 0.908, position: 'G', goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 15 },
+          { name: 'Laurent Brossoit', value: 0.895, position: 'G', goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 8 }
         ],
         injuries: [
           { name: 'Mark Stone', daysOut: 14 },
           { name: 'Zach Whitecloud', daysOut: 7 }
         ],
         roster: [
-          { name: 'Jack Eichel', position: 'C', number: 9 },
-          { name: 'Mark Stone', position: 'RW', number: 61 },
-          { name: 'Ivan Barbashev', position: 'LW', number: 49 },
-          { name: 'Tomas Hertl', position: 'C', number: 48 },
-          { name: 'William Karlsson', position: 'C', number: 71 },
-          { name: 'Shea Theodore', position: 'D', number: 27 },
-          { name: 'Alex Pietrangelo', position: 'D', number: 7 },
-          { name: 'Brayden McNabb', position: 'D', number: 3 },
-          { name: 'Nicolas Hague', position: 'D', number: 14 },
-          { name: 'Adin Hill', position: 'G', number: 33 },
-          { name: 'Laurent Brossoit', position: 'G', number: 39 }
+          { name: 'Jack Eichel', position: 'C', number: 9, goals: 22, assists: 23, points: 45, powerPlayGoals: 8, powerPlayPoints: 18, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 4, shootingPctg: 0.157, gamesPlayed: 35 },
+          { name: 'Mark Stone', position: 'RW', number: 61, goals: 16, assists: 22, points: 38, powerPlayGoals: 5, powerPlayPoints: 14, shorthandedGoals: 0, shorthandedPoints: 1, gameWinningGoals: 3, shootingPctg: 0.128, gamesPlayed: 33 },
+          { name: 'Ivan Barbashev', position: 'LW', number: 49, goals: 18, assists: 14, points: 32, powerPlayGoals: 6, powerPlayPoints: 12, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 2, shootingPctg: 0.145, gamesPlayed: 35 },
+          { name: 'Tomas Hertl', position: 'C', number: 48, goals: 14, assists: 14, points: 28, powerPlayGoals: 4, powerPlayPoints: 10, shorthandedGoals: 1, shorthandedPoints: 2, gameWinningGoals: 2, shootingPctg: 0.112, gamesPlayed: 32 },
+          { name: 'William Karlsson', position: 'C', number: 71, goals: 12, assists: 12, points: 24, powerPlayGoals: 2, powerPlayPoints: 6, shorthandedGoals: 2, shorthandedPoints: 4, gameWinningGoals: 1, shootingPctg: 0.098, gamesPlayed: 35 },
+          { name: 'Shea Theodore', position: 'D', number: 27, goals: 8, assists: 20, points: 28, powerPlayGoals: 2, powerPlayPoints: 12, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 1, shootingPctg: 0.065, gamesPlayed: 35 },
+          { name: 'Alex Pietrangelo', position: 'D', number: 7, goals: 5, assists: 15, points: 20, powerPlayGoals: 1, powerPlayPoints: 8, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0.042, gamesPlayed: 35 },
+          { name: 'Brayden McNabb', position: 'D', number: 3, goals: 2, assists: 8, points: 10, powerPlayGoals: 0, powerPlayPoints: 2, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0.025, gamesPlayed: 35 },
+          { name: 'Nicolas Hague', position: 'D', number: 14, goals: 4, assists: 10, points: 14, powerPlayGoals: 1, powerPlayPoints: 5, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0.038, gamesPlayed: 32 },
+          { name: 'Adin Hill', position: 'G', number: 33, goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 20 },
+          { name: 'Laurent Brossoit', position: 'G', number: 39, goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 8 }
         ]
       }
     : {
