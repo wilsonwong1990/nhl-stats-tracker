@@ -70,9 +70,9 @@ export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
           { name: 'William Karlsson', value: 20.3, position: 'C', goals: 12, assists: 12, points: 24, powerPlayGoals: 2, powerPlayPoints: 6, shorthandedGoals: 2, shorthandedPoints: 4, gameWinningGoals: 1, shootingPctg: 0.098, gamesPlayed: 35 }
         ],
         goalieStats: [
-          { name: 'Adin Hill', value: 0.912, position: 'G', goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 20 },
-          { name: 'Logan Thompson', value: 0.908, position: 'G', goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 15 },
-          { name: 'Laurent Brossoit', value: 0.895, position: 'G', goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 8 }
+          { name: 'Adin Hill', value: 0.912, position: 'G', gamesPlayed: 20, wins: 12, losses: 6, otLosses: 2, savePctg: 0.912, goalsAgainstAvg: 2.58, shutouts: 2, shotsAgainst: 620, saves: 565, goalsAgainst: 55 },
+          { name: 'Logan Thompson', value: 0.908, position: 'G', gamesPlayed: 15, wins: 8, losses: 5, otLosses: 2, savePctg: 0.908, goalsAgainstAvg: 2.73, shutouts: 1, shotsAgainst: 450, saves: 409, goalsAgainst: 41 },
+          { name: 'Laurent Brossoit', value: 0.895, position: 'G', gamesPlayed: 8, wins: 4, losses: 3, otLosses: 1, savePctg: 0.895, goalsAgainstAvg: 3.12, shutouts: 0, shotsAgainst: 240, saves: 215, goalsAgainst: 25 }
         ],
         injuries: [
           { name: 'Mark Stone', daysOut: 14 },
@@ -88,8 +88,8 @@ export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
           { name: 'Alex Pietrangelo', position: 'D', number: 7, goals: 5, assists: 15, points: 20, powerPlayGoals: 1, powerPlayPoints: 8, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0.042, gamesPlayed: 35 },
           { name: 'Brayden McNabb', position: 'D', number: 3, goals: 2, assists: 8, points: 10, powerPlayGoals: 0, powerPlayPoints: 2, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0.025, gamesPlayed: 35 },
           { name: 'Nicolas Hague', position: 'D', number: 14, goals: 4, assists: 10, points: 14, powerPlayGoals: 1, powerPlayPoints: 5, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0.038, gamesPlayed: 32 },
-          { name: 'Adin Hill', position: 'G', number: 33, goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 20 },
-          { name: 'Laurent Brossoit', position: 'G', number: 39, goals: 0, assists: 0, points: 0, powerPlayGoals: 0, powerPlayPoints: 0, shorthandedGoals: 0, shorthandedPoints: 0, gameWinningGoals: 0, shootingPctg: 0, gamesPlayed: 8 }
+          { name: 'Adin Hill', position: 'G', number: 33, gamesPlayed: 20, wins: 12, losses: 6, otLosses: 2, savePctg: 0.912, goalsAgainstAvg: 2.58, shutouts: 2, shotsAgainst: 620, saves: 565, goalsAgainst: 55 },
+          { name: 'Laurent Brossoit', position: 'G', number: 39, gamesPlayed: 8, wins: 4, losses: 3, otLosses: 1, savePctg: 0.895, goalsAgainstAvg: 3.12, shutouts: 0, shotsAgainst: 240, saves: 215, goalsAgainst: 25 }
         ]
       }
     : {

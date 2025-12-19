@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Target, HandsClapping, TrendUp, Lightning, Crosshair } from '@phosphor-icons/react'
+import { Target, HandsClapping, TrendUp, Lightning, Crosshair, Trophy, Shield } from '@phosphor-icons/react'
 
 interface PlayerModalProps {
   isOpen: boolean
@@ -19,6 +19,16 @@ interface PlayerModalProps {
     gameWinningGoals?: number
     shootingPctg?: number
     gamesPlayed?: number
+    // Goalie stats
+    wins?: number
+    losses?: number
+    otLosses?: number
+    savePctg?: number
+    goalsAgainstAvg?: number
+    shutouts?: number
+    shotsAgainst?: number
+    saves?: number
+    goalsAgainst?: number
   } | null
 }
 
@@ -30,7 +40,50 @@ export function PlayerModal({ isOpen, onClose, player }: PlayerModalProps) {
     return `${(value * 100).toFixed(1)}%`
   }
 
-  const statItems = [
+  const formatDecimal = (value: number | undefined, decimals: number = 2) => {
+    if (value === undefined || value === 0) return '0.00'
+    return value.toFixed(decimals)
+  }
+
+  const isGoalie = player.position === 'G'
+
+  const statItems = isGoalie ? [
+    { 
+      label: 'Wins', 
+      value: player.wins || 0, 
+      icon: <Trophy className="text-accent" size={18} weight="bold" /> 
+    },
+    { 
+      label: 'Losses', 
+      value: player.losses || 0, 
+      icon: <Target className="text-accent" size={18} weight="bold" /> 
+    },
+    { 
+      label: 'OT Losses', 
+      value: player.otLosses || 0, 
+      icon: <Target className="text-accent" size={18} weight="bold" /> 
+    },
+    { 
+      label: 'Save Percentage', 
+      value: formatPercentage(player.savePctg), 
+      icon: <Shield className="text-accent" size={18} weight="bold" />
+    },
+    { 
+      label: 'Goals Against Average', 
+      value: formatDecimal(player.goalsAgainstAvg, 2), 
+      icon: <Crosshair className="text-accent" size={18} weight="bold" /> 
+    },
+    { 
+      label: 'Shutouts', 
+      value: player.shutouts || 0, 
+      icon: <Trophy className="text-accent" size={18} weight="bold" /> 
+    },
+    { 
+      label: 'Saves', 
+      value: player.saves || 0, 
+      icon: <Shield className="text-accent" size={18} weight="bold" /> 
+    },
+  ] : [
     { 
       label: 'Goals', 
       value: player.goals || 0, 

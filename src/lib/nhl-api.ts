@@ -31,6 +31,16 @@ export interface PlayerStat {
   gameWinningGoals?: number
   shootingPctg?: number
   gamesPlayed?: number
+  // Goalie-specific stats
+  wins?: number
+  losses?: number
+  otLosses?: number
+  savePctg?: number
+  goalsAgainstAvg?: number
+  shutouts?: number
+  shotsAgainst?: number
+  saves?: number
+  goalsAgainst?: number
 }
 
 export interface InjuredPlayer {
@@ -56,6 +66,16 @@ export interface RosterPlayer {
   gameWinningGoals?: number
   shootingPctg?: number
   gamesPlayed?: number
+  // Goalie-specific stats
+  wins?: number
+  losses?: number
+  otLosses?: number
+  savePctg?: number
+  goalsAgainstAvg?: number
+  shutouts?: number
+  shotsAgainst?: number
+  saves?: number
+  goalsAgainst?: number
 }
 
 export interface StandingsInfo {
@@ -607,7 +627,18 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
       .slice(0, 3)
       .map(g => ({
         name: `${g.firstName?.default || ''} ${g.lastName?.default || ''}`.trim(),
-        value: parseFloat((g.savePctg || g.savePercentage || 0).toFixed(3))
+        value: parseFloat((g.savePctg || g.savePercentage || 0).toFixed(3)),
+        position: 'G',
+        gamesPlayed: g.gamesPlayed || g.games || 0,
+        wins: g.wins || 0,
+        losses: g.losses || 0,
+        otLosses: g.otLosses || g.overtimeLosses || 0,
+        savePctg: g.savePctg || g.savePercentage || 0,
+        goalsAgainstAvg: g.goalsAgainstAverage || g.goalsAgainstAvg || g.gaa || 0,
+        shutouts: g.shutouts || 0,
+        shotsAgainst: g.shotsAgainst || g.sa || 0,
+        saves: g.saves || 0,
+        goalsAgainst: g.goalsAgainst || g.ga || 0
       }))
     
     console.log('Successfully parsed stats leaders')
@@ -668,9 +699,12 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
             const number = player.sweaterNumber || player.number || player.jerseyNumber || player.uniformNumber || 0;
             const captaincy = player.captaincy || null;
             
-            // Try to find matching stats from skaters array
-            const stats = skaters.find(s => 
+            // Try to find matching stats from skaters array or goalies array
+            const skaterStats = skaters.find(s => 
               `${s.firstName?.default || ''} ${s.lastName?.default || ''}`.trim() === name
+            );
+            const goalieStats = goalies.find(g => 
+              `${g.firstName?.default || ''} ${g.lastName?.default || ''}`.trim() === name
             );
             
             if (idx < 3) {
@@ -680,25 +714,47 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
                 position,
                 number,
                 captaincy,
-                hasStats: !!stats,
+                hasSkaterStats: !!skaterStats,
+                hasGoalieStats: !!goalieStats,
                 availableFields: Object.keys(player)
               });
             }
+            
+            // For goalies, use goalie stats; for skaters, use skater stats
+            if (position === 'G' && goalieStats) {
+              return {
+                name,
+                position,
+                number,
+                captaincy,
+                gamesPlayed: goalieStats.gamesPlayed || goalieStats.games || 0,
+                wins: goalieStats.wins || 0,
+                losses: goalieStats.losses || 0,
+                otLosses: goalieStats.otLosses || goalieStats.overtimeLosses || 0,
+                savePctg: goalieStats.savePctg || goalieStats.savePercentage || 0,
+                goalsAgainstAvg: goalieStats.goalsAgainstAverage || goalieStats.goalsAgainstAvg || goalieStats.gaa || 0,
+                shutouts: goalieStats.shutouts || 0,
+                shotsAgainst: goalieStats.shotsAgainst || goalieStats.sa || 0,
+                saves: goalieStats.saves || 0,
+                goalsAgainst: goalieStats.goalsAgainst || goalieStats.ga || 0
+              };
+            }
+            
             return { 
               name, 
               position, 
               number, 
               captaincy,
-              goals: stats?.goals || 0,
-              assists: stats?.assists || 0,
-              points: stats?.points || 0,
-              powerPlayGoals: stats?.powerPlayGoals || stats?.ppGoals || 0,
-              powerPlayPoints: stats?.powerPlayPoints || stats?.ppPoints || 0,
-              shorthandedGoals: stats?.shorthandedGoals || stats?.shGoals || 0,
-              shorthandedPoints: stats?.shorthandedPoints || stats?.shPoints || 0,
-              gameWinningGoals: stats?.gameWinningGoals || stats?.gwGoals || 0,
-              shootingPctg: stats?.shootingPctg || stats?.shootingPercentage || 0,
-              gamesPlayed: stats?.gamesPlayed || stats?.games || 0
+              goals: skaterStats?.goals || 0,
+              assists: skaterStats?.assists || 0,
+              points: skaterStats?.points || 0,
+              powerPlayGoals: skaterStats?.powerPlayGoals || skaterStats?.ppGoals || 0,
+              powerPlayPoints: skaterStats?.powerPlayPoints || skaterStats?.ppPoints || 0,
+              shorthandedGoals: skaterStats?.shorthandedGoals || skaterStats?.shGoals || 0,
+              shorthandedPoints: skaterStats?.shorthandedPoints || skaterStats?.shPoints || 0,
+              gameWinningGoals: skaterStats?.gameWinningGoals || skaterStats?.gwGoals || 0,
+              shootingPctg: skaterStats?.shootingPctg || skaterStats?.shootingPercentage || 0,
+              gamesPlayed: skaterStats?.gamesPlayed || skaterStats?.games || 0
             };
           }).filter(p => {
             if (seen.has(p.name)) return false;
@@ -718,7 +774,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
         // Fallback to stats data
         console.log('Building roster from stats data')
         const seen = new Set<string>();
-        const mapped = skaters.map((player: any, idx: number) => {
+        const skatersForRoster = skaters.map((player: any, idx: number) => {
           const name = `${player.firstName?.default || ''} ${player.lastName?.default || ''}`.trim();
           const positionRaw = player.position || player.positionCode || player.primaryPosition || 'F';
           const position = normalizePosition(positionRaw);
@@ -747,7 +803,29 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
             shootingPctg: player.shootingPctg || player.shootingPercentage || 0,
             gamesPlayed: player.gamesPlayed || player.games || 0
           };
-        }).filter(p => {
+        });
+        
+        const goaliesForRoster = goalies.map((player: any) => {
+          const name = `${player.firstName?.default || ''} ${player.lastName?.default || ''}`.trim();
+          const number = player.sweaterNumber || player.number || player.jerseyNumber || player.uniformNumber || 0;
+          return {
+            name,
+            position: 'G',
+            number,
+            gamesPlayed: player.gamesPlayed || player.games || 0,
+            wins: player.wins || 0,
+            losses: player.losses || 0,
+            otLosses: player.otLosses || player.overtimeLosses || 0,
+            savePctg: player.savePctg || player.savePercentage || 0,
+            goalsAgainstAvg: player.goalsAgainstAverage || player.goalsAgainstAvg || player.gaa || 0,
+            shutouts: player.shutouts || 0,
+            shotsAgainst: player.shotsAgainst || player.sa || 0,
+            saves: player.saves || 0,
+            goalsAgainst: player.goalsAgainst || player.ga || 0
+          };
+        });
+        
+        const mapped = [...skatersForRoster, ...goaliesForRoster].filter(p => {
           if (seen.has(p.name)) return false;
           seen.add(p.name);
           return true;
