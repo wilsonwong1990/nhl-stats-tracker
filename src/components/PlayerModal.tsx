@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Target, HandsClapping, TrendUp, Lightning, Crosshair, Trophy, Shield } from '@phosphor-icons/react'
+import { Target, HandsClapping, TrendUp, Lightning, Crosshair, Trophy, Shield, XCircle, Clock } from '@phosphor-icons/react'
 
 interface PlayerModalProps {
   isOpen: boolean
@@ -56,12 +56,12 @@ export function PlayerModal({ isOpen, onClose, player }: PlayerModalProps) {
     { 
       label: 'Losses', 
       value: player.losses || 0, 
-      icon: <Target className="text-accent" size={18} weight="bold" /> 
+      icon: <XCircle className="text-accent" size={18} weight="bold" /> 
     },
     { 
       label: 'OT Losses', 
       value: player.otLosses || 0, 
-      icon: <Target className="text-accent" size={18} weight="bold" /> 
+      icon: <Clock className="text-accent" size={18} weight="bold" /> 
     },
     { 
       label: 'Save Percentage', 
@@ -76,7 +76,7 @@ export function PlayerModal({ isOpen, onClose, player }: PlayerModalProps) {
     { 
       label: 'Shutouts', 
       value: player.shutouts || 0, 
-      icon: <Trophy className="text-accent" size={18} weight="bold" /> 
+      icon: <Target className="text-accent" size={18} weight="bold" /> 
     },
     { 
       label: 'Saves', 
