@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Target, Clock, Trophy, Warning, MapPin, Star } from '@phosphor-icons/react'
+import { Target, Clock, Trophy, Warning, MapPin, Star, Shield } from '@phosphor-icons/react'
 import { fetchGameDetails, type GameDetails } from '@/lib/nhl-api'
 
 interface GameModalProps {
@@ -57,6 +57,32 @@ export function GameModal({ isOpen, onClose, gameId }: GameModalProps) {
     })
   }
 
+  const parseToSeconds = (value?: string) => {
+    if (!value) return 0
+    const parts = value.split(':').map((segment) => Number(segment))
+    if (parts.some((segment) => Number.isNaN(segment))) {
+      return 0
+    }
+    if (parts.length === 3) {
+      const [hours, minutes, seconds] = parts
+      return (hours * 3600) + (minutes * 60) + seconds
+    }
+    if (parts.length === 2) {
+      const [minutes, seconds] = parts
+      return (minutes * 60) + seconds
+    }
+    return parts[0] ?? 0
+  }
+
+  const describePeriodType = (periodType?: string) => {
+    if (!periodType) return null
+    const upper = periodType.toUpperCase()
+    if (upper === 'OT') return 'Overtime'
+    if (upper === 'SO') return 'Shootout'
+    if (upper === 'REG') return null
+    return upper
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -93,13 +119,24 @@ export function GameModal({ isOpen, onClose, gameId }: GameModalProps) {
                 {gameDetails.gameState === 'FUT' ? 'Scheduled' : 
                  gameDetails.gameState === 'LIVE' ? 'Live' : 'Final'}
               </Badge>
+              {describePeriodType(gameDetails.periodType) && (
+                <Badge variant="outline" className="text-xs uppercase border-amber-500 text-amber-400">
+                  {describePeriodType(gameDetails.periodType)}
+                </Badge>
+              )}
             </div>
 
             <Separator className="bg-border" />
 
             {/* Score Display */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 p-4 rounded-lg bg-card/50 border border-border">
+              <div
+                className={`space-y-2 p-4 rounded-lg border transition-colors ${
+                  typeof gameDetails.awayTeam.score === 'number' && typeof gameDetails.homeTeam.score === 'number' && gameDetails.awayTeam.score > gameDetails.homeTeam.score
+                    ? 'bg-accent/10 border-accent/70 shadow-[0_0_0_1px_rgba(14,165,233,0.35)]'
+                    : 'bg-card/50 border-border'
+                }`}
+              >
                 <div className="text-sm font-medium text-muted-foreground">Away</div>
                 <div className="text-lg font-bold">{gameDetails.awayTeam.name}</div>
                 {gameDetails.awayTeam.score !== undefined && (
@@ -116,7 +153,13 @@ export function GameModal({ isOpen, onClose, gameId }: GameModalProps) {
                 )}
               </div>
 
-              <div className="space-y-2 p-4 rounded-lg bg-card/50 border border-border">
+              <div
+                className={`space-y-2 p-4 rounded-lg border transition-colors ${
+                  typeof gameDetails.awayTeam.score === 'number' && typeof gameDetails.homeTeam.score === 'number' && gameDetails.homeTeam.score > gameDetails.awayTeam.score
+                    ? 'bg-accent/10 border-accent/70 shadow-[0_0_0_1px_rgba(14,165,233,0.35)]'
+                    : 'bg-card/50 border-border'
+                }`}
+              >
                 <div className="text-sm font-medium text-muted-foreground">Home</div>
                 <div className="text-lg font-bold">{gameDetails.homeTeam.name}</div>
                 {gameDetails.homeTeam.score !== undefined && (
@@ -198,42 +241,78 @@ export function GameModal({ isOpen, onClose, gameId }: GameModalProps) {
               </>
             )}
 
-            {/* Penalties */}
-            {gameDetails.penalties && gameDetails.penalties.length > 0 && (
+            {/* Goaltending */}
+            {gameDetails.goaltenders && gameDetails.goaltenders.length > 0 && (
               <>
                 <Separator className="bg-border" />
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Warning className="text-amber-400" size={20} weight="bold" />
-                    <h3 className="text-lg font-semibold">Penalties</h3>
+                    <Shield className="text-accent" size={20} weight="bold" />
+                    <h3 className="text-lg font-semibold">Goaltending</h3>
                   </div>
-                  <div 
-                    className="space-y-2 max-h-48 overflow-y-auto" 
-                    role="list" 
-                    aria-label="Penalties list"
-                    tabIndex={0}
-                  >
-                    {gameDetails.penalties.map((penalty, index) => (
-                      <div 
-                        key={index}
-                        className="flex items-start justify-between py-2 px-3 rounded-md hover:bg-muted/50 transition-colors gap-2"
-                        role="listitem"
-                      >
-                        <div className="flex items-start gap-3 flex-1">
-                          <Badge variant="outline" className="text-xs font-mono">
-                            {penalty.team}
-                          </Badge>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium">{penalty.player}</div>
-                            <div className="text-xs text-muted-foreground">{penalty.penalty}</div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {[gameDetails.awayTeam, gameDetails.homeTeam].map((team) => {
+                      const teamGoalies = (gameDetails.goaltenders ?? []).filter((goalie) => goalie.team === team.abbrev)
+                      if (teamGoalies.length === 0) return null
+
+                      const meaningfulGoalies = teamGoalies.map((goalie) => ({
+                        ...goalie,
+                        secondsPlayed: parseToSeconds(goalie.timeOnIce)
+                      }))
+                      const swapped = meaningfulGoalies.filter((goalie) => goalie.secondsPlayed > 0).length > 1
+
+                      return (
+                        <div key={team.abbrev} className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                              {team.name}
+                            </h4>
+                            {swapped && (
+                              <Badge variant="outline" className="text-[10px] uppercase border-amber-500 text-amber-400">
+                                Goalie Swap
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            {meaningfulGoalies.map((goalie) => (
+                              <div
+                                key={`${team.abbrev}-${goalie.name}`}
+                                className="rounded-lg border border-border bg-card/40 p-3 space-y-2"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="text-sm font-medium text-foreground">
+                                    {goalie.name}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {goalie.isStarter && (
+                                      <Badge variant="outline" className="text-[10px] uppercase">Starter</Badge>
+                                    )}
+                                    {!goalie.isStarter && goalie.secondsPlayed > 0 && (
+                                      <Badge variant="secondary" className="text-[10px] uppercase">Relief</Badge>
+                                    )}
+                                    {goalie.decision && (
+                                      <Badge variant="default" className="text-[10px] uppercase">
+                                        {goalie.decision}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                                  <span>TOI: {goalie.timeOnIce ?? '—'}</span>
+                                  <span>Saves: {goalie.saves ?? 0} / {goalie.shotsAgainst ?? 0} SA</span>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                                  <span>Goals Against: {goalie.goalsAgainst ?? 0}</span>
+                                  {typeof goalie.savePctg === 'number' && (
+                                    <span>SV%: {(goalie.savePctg).toFixed(3)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">
-                          <div>P{penalty.period} - {penalty.timeInPeriod}</div>
-                          <div className="text-accent">{penalty.duration} min</div>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               </>

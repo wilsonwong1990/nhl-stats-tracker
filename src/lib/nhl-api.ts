@@ -54,6 +54,18 @@ export interface GameDetails {
     name: string
     position: string
   }>
+  goaltenders?: Array<{
+    name: string
+    team: string
+    teamName?: string
+    saves?: number
+    shotsAgainst?: number
+    goalsAgainst?: number
+    savePctg?: number
+    timeOnIce?: string
+    decision?: string
+    isStarter?: boolean
+  }>
 }
 
 export interface PlayerStat {
@@ -934,6 +946,32 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
           { player: 'Shea Theodore', team: 'VGK', period: 1, timeInPeriod: '8:45', penalty: 'Tripping', duration: 2 },
           { player: 'Devon Toews', team: 'COL', period: 2, timeInPeriod: '5:12', penalty: 'High-sticking', duration: 2 },
           { player: 'William Karlsson', team: 'VGK', period: 3, timeInPeriod: '11:23', penalty: 'Holding', duration: 2 }
+        ],
+        goaltenders: [
+          {
+            name: 'Adin Hill',
+            team: 'VGK',
+            teamName: 'Vegas Golden Knights',
+            saves: 31,
+            shotsAgainst: 34,
+            goalsAgainst: 3,
+            savePctg: 0.912,
+            timeOnIce: '60:00',
+            decision: 'W',
+            isStarter: true
+          },
+          {
+            name: 'Alexandar Georgiev',
+            team: 'COL',
+            teamName: 'Colorado Avalanche',
+            saves: 28,
+            shotsAgainst: 32,
+            goalsAgainst: 4,
+            savePctg: 0.875,
+            timeOnIce: '60:00',
+            decision: 'L',
+            isStarter: true
+          }
         ]
       }
     }
@@ -978,6 +1016,42 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
     
     const data = await response.json()
     console.log('Game details received:', data)
+
+    const isSummaryEmpty = (summary: any): boolean => {
+      if (!summary) return true
+      const keys = Object.keys(summary)
+      if (keys.length === 0) return true
+      const hasContent = Boolean(
+        (Array.isArray(summary.scoring) && summary.scoring.length > 0) ||
+        (Array.isArray(summary.penalties) && summary.penalties.length > 0) ||
+        (Array.isArray(summary.threeStars) && summary.threeStars.length > 0)
+      )
+      return !hasContent
+    }
+
+    let summaryData = data.summary
+
+    if (isSummaryEmpty(summaryData) && data.gameState !== 'FUT') {
+      try {
+        const landingUrl = `${NHL_API_BASE}/gamecenter/${gameId}/landing`
+        console.log('Summary empty, attempting fallback fetch from:', landingUrl)
+        const landingResponse = await fetch(landingUrl, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        })
+        if (landingResponse.ok) {
+          const landingJson = await landingResponse.json()
+          if (!isSummaryEmpty(landingJson?.summary)) {
+            summaryData = landingJson.summary
+          }
+        } else {
+          console.warn('Fallback landing fetch failed:', landingResponse.status, landingResponse.statusText)
+        }
+      } catch (landingError) {
+        console.warn('Error during landing fallback fetch:', landingError)
+      }
+    }
     
     // Helper function to construct player name
     const getPlayerName = (player: any): string => {
@@ -988,6 +1062,28 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
     const getTeamName = (team: any): string => {
       return `${team.placeName?.default || ''} ${team.name?.default || ''}`.trim() || team.abbrev || ''
     }
+
+    const parseSlashValue = (value: any, index: 0 | 1): number | undefined => {
+      if (typeof value === 'string' && value.includes('/')) {
+        const parts = value.split('/').map(part => Number(part))
+        const parsed = parts[index]
+        return Number.isFinite(parsed) ? parsed : undefined
+      }
+      return undefined
+    }
+
+    const parseNumber = (value: any): number | undefined => {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return value
+      }
+      if (typeof value === 'string') {
+        const cleaned = value.trim()
+        if (!cleaned) return undefined
+        const numeric = Number(cleaned)
+        return Number.isFinite(numeric) ? numeric : undefined
+      }
+      return undefined
+    }
     
     // Parse the response to extract relevant game information
     const homeTeam = data.homeTeam || {}
@@ -996,8 +1092,8 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
     
     // Extract goal scorers from scoring plays (limit to 20 goals to avoid performance issues)
     const goalScorers: GameDetails['goalScorers'] = []
-    if (data.summary?.scoring) {
-      for (const period of data.summary.scoring) {
+    if (summaryData?.scoring) {
+      for (const period of summaryData.scoring) {
         const periodNum = period.periodDescriptor?.number || 0
         for (const goal of (period.goals || []).slice(0, 20)) {
           goalScorers.push({
@@ -1012,8 +1108,8 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
     
     // Extract penalties (limit to 30 penalties to avoid performance issues)
     const penalties: GameDetails['penalties'] = []
-    if (data.summary?.penalties) {
-      for (const period of data.summary.penalties) {
+    if (summaryData?.penalties) {
+      for (const period of summaryData.penalties) {
         const periodNum = period.periodDescriptor?.number || 0
         for (const penalty of (period.penalties || []).slice(0, 30)) {
           penalties.push({
@@ -1030,14 +1126,65 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
     
     // Extract three stars (limit to 3 as expected)
     const threeStars: GameDetails['threeStars'] = []
-    if (data.summary?.threeStars) {
-      for (const star of data.summary.threeStars.slice(0, 3)) {
+    if (summaryData?.threeStars) {
+      for (const star of summaryData.threeStars.slice(0, 3)) {
         threeStars.push({
           name: getPlayerName(star),
           position: star.position || ''
         })
       }
     }
+
+    const goaltenders: GameDetails['goaltenders'] = []
+    const pushGoalies = (teamKey: 'homeTeam' | 'awayTeam', teamData: any, teamName: string) => {
+      const goalies = data.playerByGameStats?.[teamKey]?.goalies
+      if (!Array.isArray(goalies)) return
+
+      for (const goalie of goalies) {
+        const shotsAgainst = parseNumber(goalie.shotsAgainst) ?? parseSlashValue(goalie.saveShotsAgainst, 1)
+        const saves = parseNumber(goalie.saves) ?? parseSlashValue(goalie.saveShotsAgainst, 0)
+        const goalsAgainst = parseNumber(goalie.goalsAgainst) ?? (shotsAgainst !== undefined && saves !== undefined ? shotsAgainst - saves : undefined)
+        const timeOnIce = typeof goalie.toi === 'string' ? goalie.toi : (typeof goalie.timeOnIce === 'string' ? goalie.timeOnIce : undefined)
+
+        const playedMeaningfulMinutes = (() => {
+          if (timeOnIce) {
+            const segments = timeOnIce.split(':').map(segment => Number(segment))
+            if (segments.length === 3) {
+              const [hours, minutes, seconds] = segments
+              if ((hours || minutes || seconds) && Number.isFinite(hours) && Number.isFinite(minutes) && Number.isFinite(seconds)) {
+                return (hours * 3600 + minutes * 60 + seconds) > 0
+              }
+            } else if (segments.length === 2) {
+              const [minutes, seconds] = segments
+              if (Number.isFinite(minutes) && Number.isFinite(seconds)) {
+                return (minutes * 60 + seconds) > 0
+              }
+            }
+          }
+          return (shotsAgainst ?? 0) > 0 || (goalsAgainst ?? 0) > 0
+        })()
+
+        if (!playedMeaningfulMinutes) {
+          continue
+        }
+
+        goaltenders.push({
+          name: getPlayerName(goalie),
+          team: teamData.abbrev || '',
+          teamName,
+          shotsAgainst,
+          saves,
+          goalsAgainst,
+          savePctg: parseNumber(goalie.savePctg),
+          timeOnIce,
+          decision: typeof goalie.decision === 'string' ? goalie.decision : undefined,
+          isStarter: typeof goalie.starter === 'boolean' ? goalie.starter : undefined
+        })
+      }
+    }
+
+    pushGoalies('homeTeam', homeTeam, getTeamName(homeTeam))
+    pushGoalies('awayTeam', awayTeam, getTeamName(awayTeam))
     
     return {
       id: gameId,
@@ -1056,11 +1203,12 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
         shots: awayTeam.sog
       },
       period: data.period,
-      periodType: data.periodDescriptor?.periodType || gameInfo.periodDescriptor?.periodType,
+      periodType: data.gameOutcome?.lastPeriodType || data.periodDescriptor?.periodType || gameInfo.periodDescriptor?.periodType,
       gameState: data.gameState || gameInfo.gameState || 'FUT',
       goalScorers: goalScorers.length > 0 ? goalScorers : undefined,
       penalties: penalties.length > 0 ? penalties : undefined,
-      threeStars: threeStars.length > 0 ? threeStars : undefined
+      threeStars: threeStars.length > 0 ? threeStars : undefined,
+      goaltenders: goaltenders.length > 0 ? goaltenders : undefined
     }
   } catch (error) {
     console.error('Error fetching game details:', error)
