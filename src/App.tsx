@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatLeaderCard } from '@/components/StatLeaderCard'
+import { PlayerModal } from '@/components/PlayerModal'
 import { 
   Activity,
   CaretLeft, 
@@ -72,6 +73,10 @@ function App() {
   const [injuries, setInjuries] = useState<InjuredPlayer[]>([])
   const [roster, setRoster] = useState<RosterPlayer[]>([])
   const [standings, setStandings] = useState<StandingsInfo>({ conferencePosition: 0, isWildcard: false })
+
+  // Player modal state
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | RosterPlayer | null>(null)
+  const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false)
 
   const loadData = async (forceRefresh = false) => {
     setIsLoading(true)
@@ -294,6 +299,16 @@ function App() {
   const injurySlug = team.puckpediaSlug ?? team.fullName.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/(^-|-$)/g, '')
   const injuryUrl = `https://puckpedia.com/team/${injurySlug}/injuries`
 
+  const handlePlayerClick = (player: PlayerStat | RosterPlayer) => {
+    setSelectedPlayer(player)
+    setIsPlayerModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsPlayerModalOpen(false)
+    setSelectedPlayer(null)
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -484,18 +499,21 @@ function App() {
               icon={<TrendUp className="text-accent" size={20} weight="bold" />}
               leaders={pointLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
             <StatLeaderCard
               title="Goal Leaders"
               icon={<Target className="text-accent" size={20} weight="bold" />}
               leaders={goalLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
             <StatLeaderCard
               title="Assist Leaders"
               icon={<HandsClapping className="text-accent" size={20} weight="bold" />}
               leaders={assistLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
           </div>
         </section>
@@ -507,12 +525,14 @@ function App() {
               icon={<Plus className="text-accent" size={20} weight="bold" />}
               leaders={plusMinusLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
             <StatLeaderCard
               title="Avg Shifts/Game"
               icon={<Lightning className="text-accent" size={20} weight="bold" />}
               leaders={avgShiftsLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
             <StatLeaderCard
               title="Goalie Save %"
@@ -520,6 +540,7 @@ function App() {
               leaders={goalieStats}
               isLoading={isLoading}
               formatValue={(value) => `${(value * 100).toFixed(1)}%`}
+              onPlayerClick={handlePlayerClick}
             />
           </div>
         </section>
@@ -557,7 +578,11 @@ function App() {
                       <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">{title}</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {players.map(player => (
-                          <div key={`${player.name}-${player.number}`} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors">
+                          <div 
+                            key={`${player.name}-${player.number}`} 
+                            className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors cursor-pointer"
+                            onClick={() => handlePlayerClick(player)}
+                          >
                             <div className="flex items-center gap-2">
                               <div>
                                 <div className="text-sm font-medium">{player.name}</div>
@@ -618,6 +643,12 @@ function App() {
           </Card>
         </section>
       </div>
+
+      <PlayerModal 
+        isOpen={isPlayerModalOpen}
+        onClose={handleCloseModal}
+        player={selectedPlayer}
+      />
     </div>
   );
 }

@@ -1,16 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ReactNode } from 'react'
+import { type PlayerStat } from '@/lib/nhl-api'
 
 interface StatLeaderCardProps {
   title: string
   icon: ReactNode
-  leaders: Array<{ name: string; value: number }>
+  leaders: PlayerStat[]
   isLoading: boolean
   formatValue?: (value: number) => string
+  onPlayerClick?: (player: PlayerStat) => void
 }
 
-export function StatLeaderCard({ title, icon, leaders, isLoading, formatValue }: StatLeaderCardProps) {
+export function StatLeaderCard({ title, icon, leaders, isLoading, formatValue, onPlayerClick }: StatLeaderCardProps) {
   const defaultFormat = (value: number) => value.toString()
   const formatter = formatValue || defaultFormat
 
@@ -39,7 +41,11 @@ export function StatLeaderCard({ title, icon, leaders, isLoading, formatValue }:
           <p className="text-sm text-muted-foreground">No data available</p>
         ) : (
           leaders.map((player, index) => (
-            <div key={player.name} className="flex items-center justify-between">
+            <div 
+              key={player.name} 
+              className={`flex items-center justify-between ${onPlayerClick ? 'cursor-pointer hover:bg-muted/50 transition-colors rounded-md px-2 py-1' : ''}`}
+              onClick={() => onPlayerClick?.(player)}
+            >
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-muted-foreground w-6">
                   #{index + 1}
