@@ -78,7 +78,6 @@ function App() {
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | RosterPlayer | null>(null)
   const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false)
 
-
   const loadData = async (forceRefresh = false) => {
     setIsLoading(true)
     setError(null)
