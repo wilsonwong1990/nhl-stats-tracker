@@ -45,7 +45,7 @@ import {
 } from '@phosphor-icons/react'
 import { fetchAllTeamData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, DEFAULT_SEASON } from '@/lib/nhl-api'
 import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
-import { getAvailableSeasons, getCurrentSeason } from '@/lib/seasons'
+import { getAvailableSeasons, getCurrentSeason, formatSeasonDisplay } from '@/lib/seasons'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
@@ -463,7 +463,7 @@ function App() {
         {!teamExistedInSeason ? (
           <div className="text-center py-12 space-y-4">
             <div className="text-muted-foreground text-lg">
-              {team.fullName} did not exist during the {selectedSeason.substring(0, 4)}-{selectedSeason.substring(4, 8)} season
+              {team.fullName} did not exist during the {formatSeasonDisplay(selectedSeason)} season
             </div>
             <div className="text-sm text-muted-foreground">
               {team.fullName} started in the {team.inceptionYear}-{team.inceptionYear + 1} season
