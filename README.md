@@ -1,10 +1,10 @@
-# Vegas Golden Knights Stats Tracker ⚔️🏒
+# NHL Stats Tracker 🏒
 
-A comprehensive stats tracking application for the Vegas Golden Knights hockey team, providing real-time access to upcoming games, player statistics, and injury reports for the current season.
+A comprehensive stats tracking application for all NHL teams, providing real-time access to upcoming games, player statistics, and injury reports for the current season. Track your favorite team with live data from the NHL API!
 
 ## 🎯 About This Project
 
-This application was created using [GitHub Spark](https://githubnext.com/projects/github-spark), an AI-powered tool for rapidly building web applications. What started as a Spark project has evolved into a full-featured hockey statistics dashboard that pulls live data from the NHL API.
+This application was created using [GitHub Spark](https://githubnext.com/projects/github-spark), an AI-powered tool for rapidly building web applications. What started as a Spark project focused on the Vegas Golden Knights has evolved into a full-featured hockey statistics dashboard that supports all 32 NHL teams and pulls live data from the NHL API.
 
 ### Experience Qualities
 - **Informative** - Presents complex hockey statistics in an easily digestible, organized manner
@@ -12,6 +12,12 @@ This application was created using [GitHub Spark](https://githubnext.com/project
 - **Dynamic** - Updates and navigates smoothly between game schedules while maintaining visual hierarchy
 
 ## ✨ Features
+
+### 🏒 Team Selection
+- Choose from all 32 NHL teams via an easy-to-use dropdown selector
+- Dynamic theme updates based on selected team's colors and branding
+- Remembers your team preference across sessions
+- Defaults to Vegas Golden Knights
 
 ### 📅 Upcoming Games Schedule
 - Displays the next 10 upcoming games with opponent, home/away status, and PST start time
@@ -35,8 +41,9 @@ All statistics are fetched live from the NHL API and cached for 24 hours.
 - Duration of injuries
 - Clear indication when no players are injured
 
-### 🎨 Team Customization
-- Vegas Golden Knights team colors and branding
+### 🎨 Dynamic Team Theming
+- Unique color schemes for all 32 NHL teams
+- Automatic theme switching when selecting a different team
 - Professional, data-focused design inspired by ESPN and NHL.com
 - Responsive layout for desktop and mobile devices
 
@@ -106,11 +113,13 @@ vegas-golden-kn-iron/
 
 ## 🎨 Design
 
-The application uses a triadic color scheme based on the Vegas Golden Knights team colors:
-- **Steel Gray** - Primary text and headers
-- **Gold** - Team's signature color for accents
-- **Dark Charcoal** - Backgrounds and card surfaces
-- **Vegas Gold** - Bright gold for CTAs and highlights
+The application features dynamic theming that adapts to each NHL team's unique colors. Each team has a custom color palette including:
+- **Primary Color** - Team's main brand color for accents and highlights
+- **Secondary Color** - Complementary team color for additional accents
+- **Background Colors** - Dark, professional backgrounds optimized for data display
+- **Foreground Colors** - High-contrast text colors for excellent readability
+
+The default theme is based on the Vegas Golden Knights colors (Steel Gray and Gold), but changes dynamically when you select a different team.
 
 Typography uses the **Inter** font family for excellent readability across all data displays.
 
@@ -143,4 +152,4 @@ For detailed feature specifications and design decisions, see [PRD.md](./PRD.md)
 
 ---
 
-**Go Knights Go! ⚔️**
+**Track your favorite NHL team! 🏒**
