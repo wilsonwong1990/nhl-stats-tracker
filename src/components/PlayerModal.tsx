@@ -107,7 +107,7 @@ export function PlayerModal({ isOpen, onClose, player }: PlayerModalProps) {
     { 
       label: 'Shorthanded Goals', 
       value: player.shorthandedGoals || 0, 
-      icon: <Target className="text-accent" size={18} weight="bold" /> 
+      icon: <XCircle className="text-accent" size={18} weight="bold" /> 
     },
     { 
       label: 'Power Play Points', 
