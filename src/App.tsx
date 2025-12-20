@@ -266,7 +266,8 @@ function App() {
   };
 
   // Separate regular season and playoff games
-  const regularSeasonGames = games.filter(game => game.gameType === 2)
+  // Regular season is gameType 2, or undefined (for backwards compatibility with older data)
+  const regularSeasonGames = games.filter(game => game.gameType === 2 || game.gameType === undefined)
   const playoffGames = games.filter(game => game.gameType === 3)
   
   // Compute regular season record from completed regular season games only

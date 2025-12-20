@@ -56,14 +56,18 @@ export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
       'Los Angeles Kings', 'Los Angeles Kings', 'Los Angeles Kings', 'Los Angeles Kings', 'Los Angeles Kings', 'Los Angeles Kings', // Round 1 (won 4-2)
       'Edmonton Oilers', 'Edmonton Oilers', 'Edmonton Oilers', 'Edmonton Oilers', 'Edmonton Oilers', 'Edmonton Oilers', // Round 2 (won 4-2)
       'Dallas Stars', 'Dallas Stars', 'Dallas Stars', 'Dallas Stars', 'Dallas Stars', 'Dallas Stars', // Round 3 (won 4-2)
-      'Florida Panthers', 'Florida Panthers', 'Florida Panthers', 'Florida Panthers' // Stanley Cup Final (won 4-1, currently up 4-0)
+      'Florida Panthers', 'Florida Panthers', 'Florida Panthers', 'Florida Panthers' // Stanley Cup Final (won 4-0)
     ]
     
-    const teamWon = i < 16 || (i >= 18 && i < 22) // Won 16 of first 18, then 4 more for Cup (total 20 wins would be unrealistic, so 16 wins in 22 games)
-    const actualTeamWon = [true, false, true, true, false, true, // Round 1: Won 4-2
-                          true, true, false, true, false, true, // Round 2: Won 4-2  
-                          false, true, true, false, true, true, // Round 3: Won 4-2
-                          true, true, true, true][i] // Cup Final: Won 4-1
+    // Explicit win/loss pattern for each game: 16 wins total across 4 rounds
+    const teamWins = [
+      true, false, true, true, false, true, // Round 1: Won 4-2 (6 games)
+      true, true, false, true, false, true, // Round 2: Won 4-2 (6 games)
+      false, true, true, false, true, true, // Round 3: Won 4-2 (6 games)
+      true, true, true, true // Cup Final: Won 4-0 (4 games)
+    ]
+    
+    const actualTeamWon = i < teamWins.length ? teamWins[i] : false
     
     const homeScore = isHome ? (actualTeamWon ? 4 : 2) : (actualTeamWon ? 3 : 2)
     const awayScore = isHome ? (actualTeamWon ? 2 : 4) : (actualTeamWon ? 2 : 3)
