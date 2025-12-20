@@ -58,10 +58,30 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000
 
 function App() {
   const teams = useMemo(() => listTeams(), [])
-  const availableSeasons = useMemo(() => getAvailableSeasons(25, 2), [])
+  const availableSeasons = useMemo(() => getAvailableSeasons(25), [])
   const [selectedTeamId, setSelectedTeamId] = useKV<TeamId>('selected-team', DEFAULT_TEAM_ID)
   const [selectedSeason, setSelectedSeason] = useKV<string>('selected-season', DEFAULT_SEASON)
   const team = useMemo(() => getTeamInfo(selectedTeamId), [selectedTeamId])
+  
+  // Check if team existed in selected season
+  const teamExistedInSeason = useMemo(() => {
+    const seasonStartYear = parseInt(selectedSeason.substring(0, 4))
+    const teamInceptionYear = team.inceptionYear
+    const teamCessationYear = team.cessationYear
+    
+    // Team must have started by this season
+    if (seasonStartYear < teamInceptionYear) {
+      return false
+    }
+    
+    // If team has a cessation year, it must not have ended before this season
+    if (teamCessationYear && seasonStartYear > teamCessationYear) {
+      return false
+    }
+    
+    return true
+  }, [selectedSeason, team])
+  
   const [currentPage, setCurrentPage] = useKV<number>(`schedule-page-${team.id}-${selectedSeason}`, 0)
   const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>(`team-data-${team.id}-${selectedSeason}`, null)
   const [isLoading, setIsLoading] = useState(true)
@@ -85,6 +105,23 @@ function App() {
   const loadData = async (forceRefresh = false) => {
     setIsLoading(true)
     setError(null)
+
+    // If team didn't exist in this season, clear data and don't fetch
+    if (!teamExistedInSeason) {
+      console.log(`${team.fullName} did not exist in ${selectedSeason}`)
+      setGames([])
+      setPointLeaders([])
+      setGoalLeaders([])
+      setAssistLeaders([])
+      setPlusMinusLeaders([])
+      setAvgShiftsLeaders([])
+      setGoalieStats([])
+      setInjuries([])
+      setRoster([])
+      setStandings({ conferencePosition: 0, isWildcard: false })
+      setIsLoading(false)
+      return
+    }
 
     const now = Date.now()
     const cached = cachedTeamData
@@ -423,6 +460,18 @@ function App() {
 
         <Separator className="bg-border" />
 
+        {!teamExistedInSeason ? (
+          <div className="text-center py-12 space-y-4">
+            <div className="text-muted-foreground text-lg">
+              {team.fullName} did not exist during the {selectedSeason.substring(0, 4)}-{selectedSeason.substring(4, 8)} season
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {team.fullName} started in the {team.inceptionYear}-{team.inceptionYear + 1} season
+              {team.cessationYear && ` and played until the ${team.cessationYear}-${team.cessationYear + 1} season`}
+            </div>
+          </div>
+        ) : (
+          <>
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Timer className="text-accent" size={24} weight="bold" />
@@ -691,6 +740,8 @@ function App() {
             </CardContent>
           </Card>
         </section>
+          </>
+        )}
       </div>
 
       <PlayerModal 
