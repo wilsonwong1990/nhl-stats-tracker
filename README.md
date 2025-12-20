@@ -30,16 +30,28 @@ The app includes multiple stat leader boards showing top performers:
 - **Point Leaders** - Total points (goals + assists)
 - **Goal Leaders** - Top goal scorers
 - **Assist Leaders** - Top playmakers
-- **Block Leaders** - Defensive shot blocking leaders
-- **Hit Leaders** - Physical play leaders
+- **Plus/Minus Leaders** - Players with the best plus/minus ratings
+- **Average Shifts/Game** - Players with the most ice time by shift count
 - **Goalie Save Percentage** - Goaltending performance
 
 All statistics are fetched live from the NHL API and cached for 24 hours.
 
+### 🏆 Team Standings & Record
+- Current win-loss-OT loss record
+- Total points in standings
+- Conference position with visual indicators
+- Wildcard status (if applicable)
+- Games remaining in the season
+
+### 👥 Full Team Roster
+- Complete roster organized by position (Forwards, Defense, Goalies)
+- Player names, positions, and jersey numbers
+- Captain and alternate captain badges
+- Easy-to-scan layout for quick reference
+
 ### 🏥 Injury Report
-- Current injury status for all players
-- Duration of injuries
-- Clear indication when no players are injured
+- Direct link to external injury reports via PuckPedia
+- Real-time injury information from a trusted source
 
 ### 🎨 Dynamic Team Theming
 - Unique color schemes for all 32 NHL teams
@@ -69,8 +81,8 @@ All statistics are fetched live from the NHL API and cached for 24 hours.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/wilsonwong1990/vegas-golden-kn-iron.git
-cd vegas-golden-kn-iron
+git clone https://github.com/wilsonwong1990/nhl-stats-tracker.git
+cd nhl-stats-tracker
 ```
 
 2. Install dependencies:
@@ -97,11 +109,16 @@ npm run dev
 ## 📁 Project Structure
 
 ```
-vegas-golden-kn-iron/
+nhl-stats-tracker/
 ├── src/
 │   ├── components/       # Reusable UI components
+│   │   ├── ui/          # Base UI components (buttons, cards, etc.)
+│   │   └── StatLeaderCard.tsx  # Custom stat display component
 │   ├── hooks/           # Custom React hooks
 │   ├── lib/             # Utility functions and API clients
+│   │   ├── nhl-api.ts   # NHL API integration
+│   │   ├── teams.ts     # Team definitions and theming
+│   │   └── utils.ts     # Helper utilities
 │   ├── styles/          # Global styles and theme configuration
 │   ├── App.tsx          # Main application component
 │   └── main.tsx         # Application entry point
@@ -126,9 +143,13 @@ Typography uses the **Inter** font family for excellent readability across all d
 ## 🔄 Data Sources
 
 All live data is fetched from the official NHL API:
-- Player statistics for the current season
-- Upcoming game schedules
-- Team information and standings
+- Player statistics for the current season (points, goals, assists, plus/minus, shifts, goalie stats)
+- Upcoming game schedules with real-time scores
+- Team information, standings, and conference positions
+- Complete team rosters with player positions
+
+External data sources:
+- **PuckPedia** - Injury reports and salary cap information
 
 Data is cached for 24 hours to reduce API load and improve performance.
 
