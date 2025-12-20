@@ -61,7 +61,7 @@ npm run test -- --run
 This package is published to GitHub Packages and can be installed using:
 
 ```bash
-npm install @wilsonwong1990/vegas-golden-kn-iron
+npm install @wilsonwong1990/nhl-stats-tracker
 ```
 
 ## 🐳 Docker
@@ -69,8 +69,8 @@ npm install @wilsonwong1990/vegas-golden-kn-iron
 This application is available as a Docker image using Alpine Linux. See [DOCKER.md](DOCKER.md) for details.
 
 ```bash
-docker pull ghcr.io/wilsonwong1990/vegas-golden-kn-iron:main
-docker run -p 3000:3000 ghcr.io/wilsonwong1990/vegas-golden-kn-iron:main
+docker pull ghcr.io/wilsonwong1990/nhl-stats-tracker:main
+docker run -p 3000:3000 ghcr.io/wilsonwong1990/nhl-stats-tracker:main
 ```
 
 ## 🔄 Continuous Integration
