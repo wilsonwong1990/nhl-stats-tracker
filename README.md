@@ -1,8 +1,8 @@
-# ✨ Welcome to Your Spark Template!
-You've just launched your brand-new Spark Template Codespace — everything’s fired up and ready for you to explore, build, and create with Spark!
+# Vegas Golden Knights Stats Tracker
 
-This template is your blank canvas. It comes with a minimal setup to help you get started quickly with Spark development.
+A comprehensive stats tracking application for the Vegas Golden Knights hockey team, providing real-time access to upcoming games, player statistics, and injury reports for the current season.
 
+## 🚀 Quick Start
 🚀 What's Inside?
 - A clean, minimal Spark environment
 - Pre-configured for local development
@@ -11,8 +11,12 @@ This template is your blank canvas. It comes with a minimal setup to help you ge
   
 🧠 What Can You Do?
 
-Right now, this is just a starting point — the perfect place to begin building and testing your Spark applications.
+### Development
 
+```bash
+npm install --legacy-peer-deps
+npm run dev
+```
 ## Testing
 
 This project includes a comprehensive test suite to ensure code quality:
@@ -40,9 +44,47 @@ All tests run automatically on pull requests via GitHub Actions.
 🧹 Just Exploring?
 No problem! If you were just checking things out and don’t need to keep this code:
 
-- Simply delete your Spark.
-- Everything will be cleaned up — no traces left behind.
+### Production Build
 
-📄 License For Spark Template Resources 
+```bash
+npm run build
+```
+
+### Testing
+
+```bash
+npm run test -- --run
+```
+
+## 📦 NPM Package
+
+This package is published to GitHub Packages and can be installed using:
+
+```bash
+npm install @wilsonwong1990/vegas-golden-kn-iron
+```
+
+## 🐳 Docker
+
+This application is available as a Docker image using Alpine Linux. See [DOCKER.md](DOCKER.md) for details.
+
+```bash
+docker pull ghcr.io/wilsonwong1990/vegas-golden-kn-iron:main
+docker run -p 3000:3000 ghcr.io/wilsonwong1990/vegas-golden-kn-iron:main
+```
+
+## 🔄 Continuous Integration
+
+This project uses GitHub Actions for:
+- Building and publishing npm packages to GitHub Packages
+- Building and publishing Docker images to GitHub Container Registry
+
+Workflows are triggered on:
+- Push to main branch
+- Pull requests
+- Version tags (v*.*.*)
+- Manual workflow dispatch
+
+## 📄 License
 
 The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
