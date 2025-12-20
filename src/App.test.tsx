@@ -101,12 +101,12 @@ describe('App Component Tests', () => {
 
       const jackEichelStats: PlayerStat = {
         name: 'Jack Eichel',
-        value: 2, // 2 points in the game
         position: 'C',
         playerId: 8478403,
         goals: 1,
         assists: 1,
         points: 2,
+        value: 2, // value represents the stat being measured (points in this case)
         gamesPlayed: 1
       }
 
@@ -153,18 +153,24 @@ describe('App Component Tests', () => {
       })
 
       // In the 2022-2023 season, VGK won the Stanley Cup (16 playoff wins)
-      const playoffGames: Game[] = Array.from({ length: 16 }, (_, i) => ({
-        id: `2023030${String(i + 1).padStart(3, '0')}`,
-        opponent: 'Various Teams',
-        date: '2023-06-01',
-        time: '5:00 PM',
-        isHome: i % 2 === 0,
-        homeScore: i % 2 === 0 ? 4 : 2,
-        awayScore: i % 2 === 0 ? 2 : 4,
-        gameState: 'OFF',
-        lastPeriodType: 'REG',
-        gameType: 3 // Playoff game
-      }))
+      // Create realistic playoff wins with varied home/away patterns
+      const playoffGames: Game[] = Array.from({ length: 16 }, (_, i) => {
+        const isHome = i % 3 !== 0 // More varied pattern, not just alternating
+        const teamWon = true // All playoff games were wins
+        
+        return {
+          id: `2023030${String(i + 1).padStart(3, '0')}`,
+          opponent: 'Various Teams',
+          date: '2023-06-01',
+          time: '5:00 PM',
+          isHome,
+          homeScore: isHome ? (teamWon ? 4 : 2) : (teamWon ? 2 : 4),
+          awayScore: isHome ? (teamWon ? 2 : 4) : (teamWon ? 4 : 2),
+          gameState: 'OFF',
+          lastPeriodType: 'REG',
+          gameType: 3 // Playoff game
+        }
+      })
 
       // Add some regular season games
       const regularSeasonGames: Game[] = Array.from({ length: 5 }, (_, i) => ({
@@ -300,18 +306,52 @@ describe('App Component Tests', () => {
       const mockData: TeamStats = {
         games: [],
         pointLeaders: [
-          { name: 'Jack Eichel', value: 50, position: 'C', goals: 25, assists: 25, points: 50 }
+          { 
+            name: 'Jack Eichel', 
+            value: 50, 
+            position: 'C', 
+            goals: 25, 
+            assists: 25, 
+            points: 50,
+            gamesPlayed: 50
+          }
         ],
         goalLeaders: [
-          { name: 'Jonathan Marchessault', value: 30, position: 'RW', goals: 30 }
+          { 
+            name: 'Jonathan Marchessault', 
+            value: 30, 
+            position: 'RW', 
+            goals: 30,
+            assists: 15,
+            points: 45,
+            gamesPlayed: 50
+          }
         ],
         assistLeaders: [
-          { name: 'Jack Eichel', value: 35, position: 'C', assists: 35 }
+          { 
+            name: 'Jack Eichel', 
+            value: 35, 
+            position: 'C', 
+            goals: 20,
+            assists: 35,
+            points: 55,
+            gamesPlayed: 50
+          }
         ],
         plusMinusLeaders: [],
         avgShiftsLeaders: [],
         goalieStats: [
-          { name: 'Adin Hill', value: 0.915, position: 'G', wins: 25, savePctg: 0.915 }
+          { 
+            name: 'Adin Hill', 
+            value: 0.915, 
+            position: 'G', 
+            wins: 25,
+            losses: 15,
+            savePctg: 0.915,
+            goalsAgainstAvg: 2.50,
+            shutouts: 3,
+            gamesPlayed: 40
+          }
         ],
         injuries: [],
         roster: [],
