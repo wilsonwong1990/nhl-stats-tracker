@@ -528,7 +528,7 @@ function App() {
               onPlayerClick={handlePlayerClick}
             />
             <StatLeaderCard
-              title="Avg Shifts/Game"
+              title="Avg Time on Ice"
               icon={<Lightning className="text-accent" size={20} weight="bold" />}
               leaders={avgShiftsLeaders}
               isLoading={isLoading}
