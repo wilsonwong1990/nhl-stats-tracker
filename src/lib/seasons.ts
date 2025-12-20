@@ -2,6 +2,13 @@
  * Utility functions for NHL season management
  */
 
+// Season ID format constants
+const SEASON_ID_LENGTH = 8
+const START_YEAR_START_INDEX = 0
+const START_YEAR_END_INDEX = 4
+const END_YEAR_START_INDEX = 4
+const END_YEAR_END_INDEX = 8
+
 export interface SeasonInfo {
   id: string // Format: "20242025" for 2024-2025 season
   displayName: string // Format: "2024-2025"
@@ -76,12 +83,12 @@ export function getAvailableSeasons(yearsBack: number = 25, yearsFuture: number 
  * Get a specific season by its ID
  */
 export function getSeasonById(seasonId: string): SeasonInfo | null {
-  if (!seasonId || seasonId.length !== 8) {
+  if (!seasonId || seasonId.length !== SEASON_ID_LENGTH) {
     return null
   }
   
-  const startYear = parseInt(seasonId.substring(0, 4))
-  const endYear = parseInt(seasonId.substring(4, 8))
+  const startYear = parseInt(seasonId.substring(START_YEAR_START_INDEX, START_YEAR_END_INDEX))
+  const endYear = parseInt(seasonId.substring(END_YEAR_START_INDEX, END_YEAR_END_INDEX))
   
   if (isNaN(startYear) || isNaN(endYear) || endYear !== startYear + 1) {
     return null
