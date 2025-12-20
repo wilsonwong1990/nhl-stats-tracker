@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (including devDependencies needed for build)
+RUN npm ci --legacy-peer-deps
 
 # Copy source files
 COPY . .
@@ -16,6 +16,8 @@ COPY . .
 RUN npm run build
 
 # Production stage
+# This stage only contains the built files and the serve package
+# All build dependencies are left behind in the builder stage
 FROM node:20-alpine
 
 WORKDIR /app
