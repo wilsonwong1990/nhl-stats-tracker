@@ -404,8 +404,11 @@ function App() {
             }}
           >
             <SelectTrigger className="w-full max-w-xl mx-auto bg-transparent border-none shadow-none p-0 focus:ring-0 focus:outline-none focus-visible:ring-0 data-[placeholder]:text-center">
-              <h2 className="text-2xl md:text-3xl font-semibold text-accent tracking-tight text-center w-full">
-                <SelectValue placeholder="Select a team" className="block w-full text-center" />
+              <h2 className="flex w-full items-center justify-center gap-2 text-2xl md:text-3xl font-semibold text-accent tracking-tight text-center">
+                <SelectValue placeholder="Select a team" className="text-center" />
+                {wonStanleyCup && (
+                  <Trophy className="text-yellow-400" size={24} weight="fill" title="Stanley Cup Champion" />
+                )}
               </h2>
             </SelectTrigger>
             <SelectContent className="max-h-[320px]">
@@ -476,9 +479,6 @@ function App() {
           <div className="flex items-center gap-2">
             <Timer className="text-accent" size={24} weight="bold" />
             <h2 className="text-xl font-semibold">Games Remaining: {gamesRemaining}</h2>
-            {wonStanleyCup && (
-              <Trophy className="text-yellow-400" size={28} weight="fill" title="Stanley Cup Champion" />
-            )}
           </div>
           
           <Card>
