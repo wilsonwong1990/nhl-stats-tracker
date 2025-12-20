@@ -74,10 +74,13 @@ All statistics are fetched live from the NHL API and cached for 24 hours.
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18 or higher recommended)
-- npm or yarn package manager
+- **Node.js** (v18 or higher recommended)
+- **npm** (v9 or higher) or **yarn** package manager
+- **Docker** (optional, for containerized deployment)
 
-### Installation
+### Installation Methods
+
+#### Option 1: Standard npm Installation
 
 1. Clone the repository:
 ```bash
@@ -97,14 +100,88 @@ npm run dev
 
 4. Open your browser and navigate to `http://localhost:5173` (or the port shown in your terminal)
 
+#### Option 2: Using Docker
+
+##### Using Docker Compose (Recommended)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/wilsonwong1990/nhl-stats-tracker.git
+cd nhl-stats-tracker
+```
+
+2. Build and run with Docker Compose:
+```bash
+docker-compose up -d
+```
+
+3. Open your browser and navigate to `http://localhost:3000`
+
+4. Stop the container:
+```bash
+docker-compose down
+```
+
+##### Using Docker Directly
+
+1. Build the Docker image:
+```bash
+docker build -t nhl-stats-tracker .
+```
+
+2. Run the container:
+```bash
+docker run -d -p 3000:80 --name nhl-stats-tracker nhl-stats-tracker
+```
+
+3. Open your browser and navigate to `http://localhost:3000`
+
+4. Stop and remove the container:
+```bash
+docker stop nhl-stats-tracker
+docker rm nhl-stats-tracker
+```
+
 ### Available Scripts
 
-- `npm run dev` - Start the development server
+- `npm run dev` - Start the development server (http://localhost:5173)
 - `npm run build` - Build for production
 - `npm run preview` - Preview the production build locally
 - `npm run test` - Run tests
 - `npm run test:watch` - Run tests in watch mode
-- `npm run lint` - Run ESLint
+- `npm run lint` - Run ESLint to check code quality
+- `npm run optimize` - Optimize dependencies
+
+### Package Manager Alternatives
+
+#### Using Yarn
+
+```bash
+# Install dependencies
+yarn install
+
+# Start development server
+yarn dev
+
+# Build for production
+yarn build
+```
+
+#### Using pnpm
+
+```bash
+# Install pnpm globally (if not already installed)
+npm install -g pnpm
+
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+```
 
 ## 📁 Project Structure
 
