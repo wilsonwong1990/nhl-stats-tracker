@@ -929,6 +929,59 @@ export interface CareerStats {
 }
 
 export async function fetchPlayerCareerStats(playerId: number): Promise<CareerStats | null> {
+  // Return mock career stats in mock mode
+  const useMock = import.meta.env?.VITE_USE_MOCK === 'true'
+  if (useMock) {
+    console.log(`[MOCK] Returning mock career stats for player ${playerId}`)
+    // Mock career stats for Jack Eichel (8478403)
+    if (playerId === 8478403) {
+      return {
+        goals: 283,
+        assists: 438,
+        points: 721,
+        powerPlayGoals: 97,
+        powerPlayPoints: 284,
+        shorthandedGoals: 8,
+        shorthandedPoints: 18,
+        gameWinningGoals: 48,
+        gamesPlayed: 688
+      }
+    }
+    // Mock career stats for Adin Hill (goalie)
+    if (playerId === 8477850) {
+      return {
+        goals: 0,
+        assists: 0,
+        points: 0,
+        powerPlayGoals: 0,
+        powerPlayPoints: 0,
+        shorthandedGoals: 0,
+        shorthandedPoints: 0,
+        gameWinningGoals: 0,
+        gamesPlayed: 178,
+        wins: 87,
+        losses: 65,
+        otLosses: 16,
+        shutouts: 12,
+        saves: 4865,
+        shotsAgainst: 5342,
+        goalsAgainst: 477
+      }
+    }
+    // Return generic mock data for other players
+    return {
+      goals: 150,
+      assists: 200,
+      points: 350,
+      powerPlayGoals: 45,
+      powerPlayPoints: 120,
+      shorthandedGoals: 5,
+      shorthandedPoints: 10,
+      gameWinningGoals: 25,
+      gamesPlayed: 500
+    }
+  }
+  
   try {
     const url = `${NHL_API_BASE}/player/${playerId}/landing`
     console.log(`Fetching career stats for player ${playerId} from:`, url)
