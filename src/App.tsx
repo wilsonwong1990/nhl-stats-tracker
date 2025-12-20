@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, Fragment } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatLeaderCard } from '@/components/StatLeaderCard'
 import { PlayerModal } from '@/components/PlayerModal'
+import { GameModal } from '@/components/GameModal'
 import { 
   Activity,
   CaretLeft, 
@@ -97,10 +98,26 @@ function App() {
   const [injuries, setInjuries] = useState<InjuredPlayer[]>([])
   const [roster, setRoster] = useState<RosterPlayer[]>([])
   const [standings, setStandings] = useState<StandingsInfo>({ conferencePosition: 0, isWildcard: false })
+  const [gameDetailsCache, setGameDetailsCache] = useState<Record<string, GameDetails>>({})
+  const [gameDetailsLoading, setGameDetailsLoading] = useState<Record<string, boolean>>({})
+  const gameDetailsCacheRef = useRef(gameDetailsCache)
+  const gameDetailsLoadingRef = useRef(gameDetailsLoading)
+
+  useEffect(() => {
+    gameDetailsCacheRef.current = gameDetailsCache
+  }, [gameDetailsCache])
+
+  useEffect(() => {
+    gameDetailsLoadingRef.current = gameDetailsLoading
+  }, [gameDetailsLoading])
 
   // Player modal state
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | RosterPlayer | null>(null)
   const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false)
+
+  // Game modal state
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [isGameModalOpen, setIsGameModalOpen] = useState(false)
 
   const loadData = async (forceRefresh = false) => {
     setIsLoading(true)
@@ -204,6 +221,8 @@ function App() {
 
   useEffect(() => {
     setCurrentPage(0)
+    setGameDetailsCache({})
+    setGameDetailsLoading({})
     loadData(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [team.id, selectedSeason])
@@ -232,6 +251,47 @@ function App() {
   const page = currentPage ?? 0
   const startIndex = page * 10
   const currentGames = games.slice(startIndex, startIndex + 10)
+
+  useEffect(() => {
+    if (currentGames.length === 0) return
+
+    let cancelled = false
+
+    const fetchDetailsForVisibleGames = async () => {
+      const completedVisibleGames = currentGames.filter(isGameCompleted)
+      if (completedVisibleGames.length === 0) return
+
+      for (const game of completedVisibleGames) {
+        const id = game.id
+        if (gameDetailsCacheRef.current[id] || gameDetailsLoadingRef.current[id]) continue
+
+        setGameDetailsLoading(prev => ({ ...prev, [id]: true }))
+
+        try {
+          const details = await fetchGameDetails(id)
+          if (!cancelled && details) {
+            setGameDetailsCache(prev => ({ ...prev, [id]: details }))
+          }
+        } catch (detailError) {
+          console.error(`Failed to fetch game details for ${id}:`, detailError)
+        } finally {
+          if (!cancelled) {
+            setGameDetailsLoading(prev => {
+              const next = { ...prev }
+              delete next[id]
+              return next
+            })
+          }
+        }
+      }
+    }
+
+    fetchDetailsForVisibleGames()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentGames])
 
   // Helper function to determine if the selected team won the game
   const isSelectedTeamWin = (game: Game): boolean => {
@@ -368,6 +428,16 @@ function App() {
   const handleCloseModal = () => {
     setIsPlayerModalOpen(false)
     setSelectedPlayer(null)
+  }
+
+  const handleGameClick = (game: Game) => {
+    setSelectedGameId(game.id)
+    setIsGameModalOpen(true)
+  }
+
+  const handleCloseGameModal = () => {
+    setIsGameModalOpen(false)
+    setSelectedGameId(null)
   }
 
   return (
@@ -508,47 +578,94 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentGames.map((game, index) => (
-                          <tr 
-                            key={game.id} 
-                            className={index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'}
-                          >
-                            <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
-                            <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
-                            <td className="px-4 py-3 text-sm">{game.opponent}</td>
-                            <td className="px-4 py-3">
-                              <Badge 
-                                variant={game.isHome ? 'default' : 'secondary'}
-                                className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+                        {currentGames.map((game, index) => {
+                          const details = gameDetailsCache[game.id]
+                          const isCompleted = isGameCompleted(game)
+
+                          return (
+                            <Fragment key={game.id}>
+                              <tr 
+                                className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} cursor-pointer hover:bg-accent/10 transition-colors`}
+                                onClick={() => handleGameClick(game)}
                               >
-                                {game.isHome ? 'Home' : 'Away'}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-3 text-sm font-medium tabular-nums">
-                              {(game.gameState === 'LIVE' || isGameCompleted(game)) && game.homeScore !== undefined && game.awayScore !== undefined ? (
-                                game.isHome 
-                                  ? `${game.homeScore} - ${game.awayScore}`
-                                  : `${game.awayScore} - ${game.homeScore}`
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
+                                <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
+                                <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
+                                <td className="px-4 py-3 text-sm">{game.opponent}</td>
+                                <td className="px-4 py-3">
+                                  <Badge 
+                                    variant={game.isHome ? 'default' : 'secondary'}
+                                    className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+                                  >
+                                    {game.isHome ? 'Home' : 'Away'}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 py-3 text-sm font-medium tabular-nums">
+                                  {(game.gameState === 'LIVE' || isCompleted) && game.homeScore !== undefined && game.awayScore !== undefined ? (
+                                    game.isHome 
+                                      ? `${game.homeScore} - ${game.awayScore}`
+                                      : `${game.awayScore} - ${game.homeScore}`
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {game.gameState === 'LIVE' ? (
+                                    <div className="flex items-center gap-1">
+                                      <Circle className="text-red-500 animate-pulse" size={12} weight="fill" />
+                                      <span className="text-xs text-red-500 font-medium">LIVE</span>
+                                    </div>
+                                  ) : isCompleted ? (
+                                    isSelectedTeamWin(game) ? (
+                                      <CheckCircle className="text-green-500" size={20} weight="fill" />
+                                    ) : (
+                                      <XCircle className="text-red-500" size={20} weight="fill" />
+                                    )
+                                  ) : null}
+                                </td>
+                              </tr>
+                              {isCompleted && (
+                                <tr className={`${index % 2 === 0 ? 'bg-card/30' : 'bg-card/20'} text-xs`}> 
+                                  <td colSpan={6} className="px-4 pb-4 pt-0">
+                                    {details ? (
+                                      details.goalScorers && details.goalScorers.length > 0 ? (
+                                        <div className="mt-2 grid gap-4 md:grid-cols-2">
+                                          {[details.awayTeam, details.homeTeam].map((teamInfo) => {
+                                            const teamGoals = details.goalScorers?.filter((goal) => goal.team === teamInfo.abbrev) ?? []
+                                            return (
+                                              <div key={`${details.id}-${teamInfo.abbrev}`} className="space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-sm font-semibold text-foreground">{teamInfo.name}</span>
+                                                  <Badge variant="outline" className="text-[10px] uppercase">
+                                                    {teamGoals.length} {teamGoals.length === 1 ? 'Goal' : 'Goals'}
+                                                  </Badge>
+                                                </div>
+                                                {teamGoals.length > 0 ? (
+                                                  <ul className="space-y-1 text-muted-foreground">
+                                                    {teamGoals.map((goal, idx) => (
+                                                      <li key={`${teamInfo.abbrev}-${idx}`}>
+                                                        <span className="font-medium text-foreground">{goal.name}</span>
+                                                        {goal.period ? ` · P${goal.period}` : ''}
+                                                        {goal.timeInPeriod ? ` at ${goal.timeInPeriod}` : ''}
+                                                      </li>
+                                                    ))}
+                                                  </ul>
+                                                ) : (
+                                                  <p className="italic text-muted-foreground">No goals recorded</p>
+                                                )}
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <p className="mt-2 text-muted-foreground">Goal scoring data unavailable for this matchup.</p>
+                                      )
+                                    ) : null}
+                                  </td>
+                                </tr>
                               )}
-                            </td>
-                            <td className="px-4 py-3">
-                              {game.gameState === 'LIVE' ? (
-                                <div className="flex items-center gap-1">
-                                  <Circle className="text-red-500 animate-pulse" size={12} weight="fill" />
-                                  <span className="text-xs text-red-500 font-medium">LIVE</span>
-                                </div>
-                              ) : isGameCompleted(game) ? (
-                                isSelectedTeamWin(game) ? (
-                                  <CheckCircle className="text-green-500" size={20} weight="fill" />
-                                ) : (
-                                  <XCircle className="text-red-500" size={20} weight="fill" />
-                                )
-                              ) : null}
-                            </td>
-                          </tr>
-                        ))}
+                            </Fragment>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -748,6 +865,12 @@ function App() {
         isOpen={isPlayerModalOpen}
         onClose={handleCloseModal}
         player={selectedPlayer}
+      />
+
+      <GameModal 
+        isOpen={isGameModalOpen}
+        onClose={handleCloseGameModal}
+        gameId={selectedGameId}
       />
     </div>
   );
