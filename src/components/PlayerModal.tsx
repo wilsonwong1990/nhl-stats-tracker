@@ -148,7 +148,7 @@ export function PlayerModal({ isOpen, onClose, player }: PlayerModalProps) {
           
           <div className="space-y-3">
             {statItems.map((stat, index) => (
-              <div key={index} className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 transition-colors">
+              <div key={stat.label} className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3">
                   {stat.icon}
                   <span className="text-sm font-medium">{stat.label}</span>
