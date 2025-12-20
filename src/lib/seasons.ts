@@ -18,9 +18,9 @@ export function getCurrentSeason(): SeasonInfo {
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth() + 1 // 1-12
   
-  // If we're in Jan-June, the season started last year
-  // If we're in July-Dec, the season starts this year
-  const startYear = currentMonth >= 7 ? currentYear : currentYear - 1
+  // If we're in Jan-September, the season started last year
+  // If we're in October-Dec, the season starts this year
+  const startYear = currentMonth >= 10 ? currentYear : currentYear - 1
   const endYear = startYear + 1
   
   return {

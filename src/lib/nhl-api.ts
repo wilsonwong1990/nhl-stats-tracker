@@ -1,5 +1,6 @@
 const NHL_API_BASE = '/nhl-api/v1'
-export const DEFAULT_SEASON = '20252026'
+// Default to current season - will be 20242025 for 2024-2025 season
+export const DEFAULT_SEASON = '20242025'
 // Optional mock data import (only used when env flag is set)
 import getMockData from './mock-data'
 import { DEFAULT_TEAM_ID, getTeamInfo, type TeamId, type TeamInfo } from './teams'

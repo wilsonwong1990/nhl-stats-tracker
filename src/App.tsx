@@ -44,7 +44,7 @@ import {
 } from '@phosphor-icons/react'
 import { fetchAllTeamData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, DEFAULT_SEASON } from '@/lib/nhl-api'
 import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
-import { getAvailableSeasons, getCurrentSeason } from '@/lib/seasons'
+import { getAvailableSeasons, getCurrentSeason, formatSeasonDisplay } from '@/lib/seasons'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
@@ -324,8 +324,7 @@ function App() {
               value={selectedSeason}
               onValueChange={(value) => {
                 setSelectedSeason(value)
-                const season = availableSeasons.find(s => s.id === value)
-                toast.success(`Season ${season?.displayName} selected`)
+                toast.success(`Season ${formatSeasonDisplay(value)} selected`)
               }}
             >
               <SelectTrigger className="w-[160px] bg-card border-border">
