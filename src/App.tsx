@@ -44,7 +44,7 @@ import {
   LinkSimple,
   Trophy
 } from '@phosphor-icons/react'
-import { fetchAllTeamData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, DEFAULT_SEASON } from '@/lib/nhl-api'
+import { fetchAllTeamData, fetchGameDetails, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, type GameDetails, DEFAULT_SEASON } from '@/lib/nhl-api'
 import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
 import { getAvailableSeasons, getCurrentSeason, formatSeasonDisplay } from '@/lib/seasons'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
