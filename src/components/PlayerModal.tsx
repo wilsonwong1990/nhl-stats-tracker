@@ -57,7 +57,8 @@ export function PlayerModal({ isOpen, onClose, player }: PlayerModalProps) {
       fetchPlayerCareerStats(player.playerId).then(stats => {
         setCareerStats(stats)
         setIsLoadingCareer(false)
-      }).catch(() => {
+      }).catch((error) => {
+        console.error('Error fetching career stats:', error)
         setIsLoadingCareer(false)
       })
     }

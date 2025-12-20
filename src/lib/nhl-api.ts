@@ -930,7 +930,7 @@ export interface CareerStats {
 
 export async function fetchPlayerCareerStats(playerId: number): Promise<CareerStats | null> {
   // Return mock career stats in mock mode
-  const useMock = import.meta.env?.VITE_USE_MOCK === 'true'
+  const useMock = import.meta.env.VITE_USE_MOCK === 'true'
   if (useMock) {
     console.log(`[MOCK] Returning mock career stats for player ${playerId}`)
     // Mock career stats for Jack Eichel (8478403)
