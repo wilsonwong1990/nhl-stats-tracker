@@ -36,7 +36,8 @@ export function PlayerModal({ isOpen, onClose, player }: PlayerModalProps) {
   if (!player) return null
 
   const formatPercentage = (value: number | undefined) => {
-    if (value === undefined || value === 0) return '0.0%'
+    if (value === undefined) return 'N/A'
+    if (value === 0) return '0.0%'
     return `${(value * 100).toFixed(1)}%`
   }
 
