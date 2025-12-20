@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, Fragment } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatLeaderCard } from '@/components/StatLeaderCard'
 import { PlayerModal } from '@/components/PlayerModal'
+import { GameModal } from '@/components/GameModal'
 import { 
   Activity,
   CaretLeft, 
@@ -97,10 +98,26 @@ function App() {
   const [injuries, setInjuries] = useState<InjuredPlayer[]>([])
   const [roster, setRoster] = useState<RosterPlayer[]>([])
   const [standings, setStandings] = useState<StandingsInfo>({ conferencePosition: 0, isWildcard: false })
+  const [gameDetailsCache, setGameDetailsCache] = useState<Record<string, GameDetails>>({})
+  const [gameDetailsLoading, setGameDetailsLoading] = useState<Record<string, boolean>>({})
+  const gameDetailsCacheRef = useRef(gameDetailsCache)
+  const gameDetailsLoadingRef = useRef(gameDetailsLoading)
+
+  useEffect(() => {
+    gameDetailsCacheRef.current = gameDetailsCache
+  }, [gameDetailsCache])
+
+  useEffect(() => {
+    gameDetailsLoadingRef.current = gameDetailsLoading
+  }, [gameDetailsLoading])
 
   // Player modal state
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | RosterPlayer | null>(null)
   const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false)
+
+  // Game modal state
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [isGameModalOpen, setIsGameModalOpen] = useState(false)
 
   const loadData = async (forceRefresh = false) => {
     setIsLoading(true)
@@ -204,6 +221,8 @@ function App() {
 
   useEffect(() => {
     setCurrentPage(0)
+    setGameDetailsCache({})
+    setGameDetailsLoading({})
     loadData(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [team.id, selectedSeason])
@@ -233,6 +252,47 @@ function App() {
   const startIndex = page * 10
   const currentGames = games.slice(startIndex, startIndex + 10)
 
+  useEffect(() => {
+    if (currentGames.length === 0) return
+
+    let cancelled = false
+
+    const fetchDetailsForVisibleGames = async () => {
+      const completedVisibleGames = currentGames.filter(isGameCompleted)
+      if (completedVisibleGames.length === 0) return
+
+      for (const game of completedVisibleGames) {
+        const id = game.id
+        if (gameDetailsCacheRef.current[id] || gameDetailsLoadingRef.current[id]) continue
+
+        setGameDetailsLoading(prev => ({ ...prev, [id]: true }))
+
+        try {
+          const details = await fetchGameDetails(id)
+          if (!cancelled && details) {
+            setGameDetailsCache(prev => ({ ...prev, [id]: details }))
+          }
+        } catch (detailError) {
+          console.error(`Failed to fetch game details for ${id}:`, detailError)
+        } finally {
+          if (!cancelled) {
+            setGameDetailsLoading(prev => {
+              const next = { ...prev }
+              delete next[id]
+              return next
+            })
+          }
+        }
+      }
+    }
+
+    fetchDetailsForVisibleGames()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentGames])
+
   // Helper function to determine if the selected team won the game
   const isSelectedTeamWin = (game: Game): boolean => {
     if (game.homeScore === undefined || game.awayScore === undefined || game.gameState === 'FUT') return false
@@ -254,6 +314,28 @@ function App() {
   // Helper function to check if game is completed
   const isGameCompleted = (game: Game): boolean => {
     return game.gameState !== 'FUT' && game.gameState !== 'LIVE' && (game.homeScore !== undefined && game.awayScore !== undefined)
+  }
+
+  const parseTimeToSeconds = (value?: string) => {
+    if (!value) return 0
+    const segments = value.split(':').map((segment) => Number(segment))
+    if (segments.some((segment) => Number.isNaN(segment))) {
+      return 0
+    }
+    if (segments.length === 3) {
+      const [hours, minutes, seconds] = segments
+      return (hours * 3600) + (minutes * 60) + seconds
+    }
+    if (segments.length === 2) {
+      const [minutes, seconds] = segments
+      return (minutes * 60) + seconds
+    }
+    return segments[0] ?? 0
+  }
+
+  const goalieHasMeaningfulMinutes = (goalie: NonNullable<GameDetails['goaltenders']>[number]) => {
+    const seconds = parseTimeToSeconds(goalie.timeOnIce)
+    return seconds > 0 || (goalie.shotsAgainst ?? 0) > 0 || (goalie.goalsAgainst ?? 0) > 0
   }
 
   const handlePrevPage = () => {
@@ -368,6 +450,16 @@ function App() {
   const handleCloseModal = () => {
     setIsPlayerModalOpen(false)
     setSelectedPlayer(null)
+  }
+
+  const handleGameClick = (game: Game) => {
+    setSelectedGameId(game.id)
+    setIsGameModalOpen(true)
+  }
+
+  const handleCloseGameModal = () => {
+    setIsGameModalOpen(false)
+    setSelectedGameId(null)
   }
 
   return (
@@ -508,47 +600,213 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentGames.map((game, index) => (
-                          <tr 
-                            key={game.id} 
-                            className={index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'}
-                          >
-                            <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
-                            <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
-                            <td className="px-4 py-3 text-sm">{game.opponent}</td>
-                            <td className="px-4 py-3">
-                              <Badge 
-                                variant={game.isHome ? 'default' : 'secondary'}
-                                className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+                        {currentGames.map((game, index) => {
+                          const details = gameDetailsCache[game.id]
+                          const isCompleted = isGameCompleted(game)
+
+                          return (
+                            <Fragment key={game.id}>
+                              <tr 
+                                className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} cursor-pointer hover:bg-accent/10 transition-colors`}
+                                onClick={() => handleGameClick(game)}
                               >
-                                {game.isHome ? 'Home' : 'Away'}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-3 text-sm font-medium tabular-nums">
-                              {(game.gameState === 'LIVE' || isGameCompleted(game)) && game.homeScore !== undefined && game.awayScore !== undefined ? (
-                                game.isHome 
-                                  ? `${game.homeScore} - ${game.awayScore}`
-                                  : `${game.awayScore} - ${game.homeScore}`
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
+                                <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
+                                <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
+                                <td className="px-4 py-3 text-sm">{game.opponent}</td>
+                                <td className="px-4 py-3">
+                                  <Badge 
+                                    variant={game.isHome ? 'default' : 'secondary'}
+                                    className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+                                  >
+                                    {game.isHome ? 'Home' : 'Away'}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 py-3 text-sm font-medium tabular-nums">
+                                  {(game.gameState === 'LIVE' || isCompleted) && game.homeScore !== undefined && game.awayScore !== undefined ? (
+                                    game.isHome 
+                                      ? `${game.homeScore} - ${game.awayScore}`
+                                      : `${game.awayScore} - ${game.homeScore}`
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {game.gameState === 'LIVE' ? (
+                                    <div className="flex items-center gap-1">
+                                      <Circle className="text-red-500 animate-pulse" size={12} weight="fill" />
+                                      <span className="text-xs text-red-500 font-medium">LIVE</span>
+                                    </div>
+                                  ) : isCompleted ? (
+                                    isSelectedTeamWin(game) ? (
+                                      <CheckCircle className="text-green-500" size={20} weight="fill" />
+                                    ) : (
+                                      <XCircle className="text-red-500" size={20} weight="fill" />
+                                    )
+                                  ) : null}
+                                </td>
+                              </tr>
+                              {isCompleted && (
+                                <tr className={`${index % 2 === 0 ? 'bg-card/30' : 'bg-card/20'} text-xs`}> 
+                                  <td colSpan={6} className="px-4 pb-4 pt-0">
+                                    {details ? (() => {
+                                      const hasGoalScorers = Array.isArray(details.goalScorers) && details.goalScorers.length > 0
+                                      const hasGoalies = Array.isArray(details.goaltenders) && details.goaltenders.length > 0
+                                      const hasThreeStars = Array.isArray(details.threeStars) && details.threeStars.length > 0
+
+                                      if (!hasGoalScorers && !hasGoalies && !hasThreeStars) {
+                                        return <p className="mt-2 text-muted-foreground">Detailed game data unavailable for this matchup.</p>
+                                      }
+
+                                      return (
+                                        <div className="mt-2 space-y-4">
+                                          {hasThreeStars && (
+                                            <div className="space-y-2">
+                                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                                <Star className="text-accent" size={16} weight="fill" />
+                                                <span>Three Stars</span>
+                                              </div>
+                                              <div className="grid gap-2 sm:grid-cols-3">
+                                                {details.threeStars!.map((star, starIndex) => (
+                                                  <div
+                                                    key={`${details.id}-star-${starIndex}`}
+                                                    className="flex items-center justify-between rounded-md border border-border bg-card/40 px-3 py-2"
+                                                  >
+                                                    <div className="flex items-center gap-2">
+                                                      <Badge variant="default" className="bg-accent text-accent-foreground text-[10px] uppercase">
+                                                        ⭐ {starIndex + 1}
+                                                      </Badge>
+                                                      <span className="text-sm font-medium">{star.name}</span>
+                                                    </div>
+                                                    {star.position && (
+                                                      <Badge variant="outline" className="text-[10px] uppercase">
+                                                        {star.position}
+                                                      </Badge>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {hasGoalScorers && (
+                                            <div className="space-y-2">
+                                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                                <Target className="text-accent" size={16} weight="bold" />
+                                                <span>Goal Scorers</span>
+                                              </div>
+                                              <div className="grid gap-4 md:grid-cols-2">
+                                                {[details.awayTeam, details.homeTeam].map((teamInfo) => {
+                                                  const teamGoals = (details.goalScorers ?? []).filter((goal) => goal.team === teamInfo.abbrev)
+                                                  return (
+                                                    <div key={`${details.id}-goals-${teamInfo.abbrev}`} className="space-y-2">
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-semibold text-foreground">{teamInfo.name}</span>
+                                                        <Badge variant="outline" className="text-[10px] uppercase">
+                                                          {teamGoals.length} {teamGoals.length === 1 ? 'Goal' : 'Goals'}
+                                                        </Badge>
+                                                      </div>
+                                                      {teamGoals.length > 0 ? (
+                                                        <ul className="space-y-1 text-muted-foreground">
+                                                          {teamGoals.map((goal, idx) => (
+                                                            <li key={`${teamInfo.abbrev}-${idx}`}>
+                                                              <span className="font-medium text-foreground">{goal.name}</span>
+                                                              {goal.period ? ` · P${goal.period}` : ''}
+                                                              {goal.timeInPeriod ? ` at ${goal.timeInPeriod}` : ''}
+                                                            </li>
+                                                          ))}
+                                                        </ul>
+                                                      ) : (
+                                                        <p className="italic text-muted-foreground">No goals recorded</p>
+                                                      )}
+                                                    </div>
+                                                  )
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {hasGoalies && (
+                                            <div className="space-y-2">
+                                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                                <Shield className="text-accent" size={16} weight="bold" />
+                                                <span>Goaltenders</span>
+                                              </div>
+                                              <div className="grid gap-4 md:grid-cols-2">
+                                                {[details.awayTeam, details.homeTeam].map((teamInfo) => {
+                                                  const teamGoalies = (details.goaltenders ?? []).filter((goalie) => goalie.team === teamInfo.abbrev)
+                                                  const activeGoalies = teamGoalies.filter(goalieHasMeaningfulMinutes)
+
+                                                  if (activeGoalies.length === 0) {
+                                                    return (
+                                                      <div key={`${details.id}-goalies-${teamInfo.abbrev}`} className="space-y-2">
+                                                        <div className="text-sm font-semibold text-foreground">{teamInfo.name}</div>
+                                                        <p className="text-xs text-muted-foreground italic">No goalie stats available.</p>
+                                                      </div>
+                                                    )
+                                                  }
+
+                                                  const swapped = activeGoalies.length > 1
+
+                                                  return (
+                                                    <div key={`${details.id}-goalies-${teamInfo.abbrev}`} className="space-y-2">
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-semibold text-foreground">{teamInfo.name}</span>
+                                                        {swapped && (
+                                                          <Badge variant="outline" className="text-[10px] uppercase border-amber-500 text-amber-400">
+                                                            Goalie Swap
+                                                          </Badge>
+                                                        )}
+                                                      </div>
+                                                      <div className="space-y-2">
+                                                        {activeGoalies.map((goalie) => (
+                                                          <div
+                                                            key={`${teamInfo.abbrev}-${goalie.name}`}
+                                                            className="rounded-lg border border-border bg-card/40 p-3 space-y-2"
+                                                          >
+                                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                              <span className="text-sm font-medium text-foreground">{goalie.name}</span>
+                                                              <div className="flex items-center gap-1">
+                                                                {goalie.isStarter && (
+                                                                  <Badge variant="outline" className="text-[10px] uppercase">Starter</Badge>
+                                                                )}
+                                                                {goalie.isStarter === false && (
+                                                                  <Badge variant="secondary" className="text-[10px] uppercase">Relief</Badge>
+                                                                )}
+                                                                {goalie.decision && (
+                                                                  <Badge variant="default" className="text-[10px] uppercase">
+                                                                    {goalie.decision.toUpperCase()}
+                                                                  </Badge>
+                                                                )}
+                                                              </div>
+                                                            </div>
+                                                            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                                                              <span>TOI: {goalie.timeOnIce ?? '—'}</span>
+                                                              <span>Saves: {goalie.saves ?? 0} / {goalie.shotsAgainst ?? 0} SA</span>
+                                                            </div>
+                                                            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                                                              <span>GA: {goalie.goalsAgainst ?? 0}</span>
+                                                              {typeof goalie.savePctg === 'number' && (
+                                                                <span>SV%: {(goalie.savePctg).toFixed(3)}</span>
+                                                              )}
+                                                            </div>
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    </div>
+                                                  )
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })() : null}
+                                  </td>
+                                </tr>
                               )}
-                            </td>
-                            <td className="px-4 py-3">
-                              {game.gameState === 'LIVE' ? (
-                                <div className="flex items-center gap-1">
-                                  <Circle className="text-red-500 animate-pulse" size={12} weight="fill" />
-                                  <span className="text-xs text-red-500 font-medium">LIVE</span>
-                                </div>
-                              ) : isGameCompleted(game) ? (
-                                isSelectedTeamWin(game) ? (
-                                  <CheckCircle className="text-green-500" size={20} weight="fill" />
-                                ) : (
-                                  <XCircle className="text-red-500" size={20} weight="fill" />
-                                )
-                              ) : null}
-                            </td>
-                          </tr>
-                        ))}
+                            </Fragment>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -748,6 +1006,12 @@ function App() {
         isOpen={isPlayerModalOpen}
         onClose={handleCloseModal}
         player={selectedPlayer}
+      />
+
+      <GameModal 
+        isOpen={isGameModalOpen}
+        onClose={handleCloseGameModal}
+        gameId={selectedGameId}
       />
     </div>
   );
