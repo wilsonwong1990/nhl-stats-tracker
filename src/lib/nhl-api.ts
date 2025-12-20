@@ -18,6 +18,7 @@ export interface Game {
   awayScore?: number
   gameState?: string // 'FUT' for future, 'LIVE' for live, 'FINAL' or 'OFF' for completed
   lastPeriodType?: string // 'REG', 'OT', 'SO', etc.
+  gameType?: number // 1: Preseason, 2: Regular Season, 3: Playoffs, 4: All-Star
 }
 
 export interface PlayerStat {
@@ -209,7 +210,8 @@ export async function fetchTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON)
           homeScore: homeScore,
           awayScore: awayScore,
           gameState: gameState,
-          lastPeriodType: lastPeriodType ? lastPeriodType.trim().toUpperCase() : undefined
+          lastPeriodType: lastPeriodType ? lastPeriodType.trim().toUpperCase() : undefined,
+          gameType: gameType
         })
       }
     }

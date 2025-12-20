@@ -40,7 +40,8 @@ import {
   CheckCircle,
   XCircle,
   Circle,
-  LinkSimple
+  LinkSimple,
+  Trophy
 } from '@phosphor-icons/react'
 import { fetchAllTeamData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, DEFAULT_SEASON } from '@/lib/nhl-api'
 import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
@@ -264,13 +265,28 @@ function App() {
     }
   };
 
-  // Compute record (wins-losses) from completed games
-  const completedGames = games.filter(isGameCompleted)
-  const derivedWins = completedGames.filter(isSelectedTeamWin).length
-  const derivedLosses = completedGames.length - derivedWins
-  const derivedOTLosses = completedGames.filter(game => !isSelectedTeamWin(game) && isOvertimeDecision(game)).length
-  const derivedRegulationLosses = Math.max(0, derivedLosses - derivedOTLosses)
-  const gamesRemaining = games.filter(game => !isGameCompleted(game) && game.gameState !== 'LIVE').length
+  // Separate regular season and playoff games
+  const regularSeasonGames = games.filter(game => game.gameType === 2)
+  const playoffGames = games.filter(game => game.gameType === 3)
+  
+  // Compute regular season record from completed regular season games only
+  const completedRegularSeasonGames = regularSeasonGames.filter(isGameCompleted)
+  const derivedRegularSeasonWins = completedRegularSeasonGames.filter(isSelectedTeamWin).length
+  const derivedRegularSeasonLosses = completedRegularSeasonGames.length - derivedRegularSeasonWins
+  const derivedRegularSeasonOTLosses = completedRegularSeasonGames.filter(game => !isSelectedTeamWin(game) && isOvertimeDecision(game)).length
+  const derivedRegularSeasonRegulationLosses = Math.max(0, derivedRegularSeasonLosses - derivedRegularSeasonOTLosses)
+  
+  // Compute playoff record from completed playoff games
+  const completedPlayoffGames = playoffGames.filter(isGameCompleted)
+  const playoffWins = completedPlayoffGames.filter(isSelectedTeamWin).length
+  const playoffLosses = completedPlayoffGames.length - playoffWins
+  
+  // Check if this team won the Stanley Cup this season (16 playoff wins)
+  const wonStanleyCup = playoffWins === 16
+  
+  const gamesRemaining = regularSeasonGames.filter(game => !isGameCompleted(game) && game.gameState !== 'LIVE').length
+  
+  // Use official standings for regular season record (standings are regular season only)
   const standingsWins = typeof standings.wins === 'number' ? standings.wins : undefined
   const standingsLosses = typeof standings.losses === 'number' ? standings.losses : undefined
   const standingsOTLosses = typeof standings.otLosses === 'number' ? standings.otLosses : undefined
@@ -280,14 +296,18 @@ function App() {
     standingsOTLosses !== undefined &&
     (standingsWins + standingsLosses + standingsOTLosses) > 0
 
-  // Prefer official standings record if available and non-empty, otherwise derive from schedule
-  const wins = hasStandingsRecord ? standingsWins! : derivedWins
-  const losses = hasStandingsRecord ? standingsLosses! : derivedRegulationLosses
-  const otLosses = hasStandingsRecord ? standingsOTLosses! : derivedOTLosses
-  // Always show three-part record per request (wins-losses-OT losses)
-  const record = `${wins}-${losses}-${otLosses}`
+  // Prefer official standings record if available and non-empty, otherwise derive from regular season schedule
+  const wins = hasStandingsRecord ? standingsWins! : derivedRegularSeasonWins
+  const losses = hasStandingsRecord ? standingsLosses! : derivedRegularSeasonRegulationLosses
+  const otLosses = hasStandingsRecord ? standingsOTLosses! : derivedRegularSeasonOTLosses
+  // Regular season record (three-part format)
+  const regularSeasonRecord = `${wins}-${losses}-${otLosses}`
+  
+  // Playoff record (if any playoff games exist)
+  const playoffRecord = completedPlayoffGames.length > 0 ? `${playoffWins}-${playoffLosses}` : null
 
   const hasOfficialPoints = typeof standings.points === 'number' && standings.points > 0
+  // Points are regular season only
   const points = hasOfficialPoints
     ? standings.points!
     : (wins * 2) + otLosses
@@ -364,9 +384,12 @@ function App() {
               Mock data active – live NHL stats disabled
             </div>
           )}
-          {(completedGames.length > 0 || wins > 0) && (
+          {(completedRegularSeasonGames.length > 0 || wins > 0) && (
             <div className="text-sm text-muted-foreground flex flex-col items-center gap-1">
-              <span>Record: {record}</span>
+              <span>Regular Season: {regularSeasonRecord}</span>
+              {playoffRecord && (
+                <span>Playoffs: {playoffRecord}</span>
+              )}
               {typeof points === 'number' && (
                 <span>Points: {points}</span>
               )}
@@ -403,6 +426,9 @@ function App() {
           <div className="flex items-center gap-2">
             <Timer className="text-accent" size={24} weight="bold" />
             <h2 className="text-xl font-semibold">Games Remaining: {gamesRemaining}</h2>
+            {wonStanleyCup && (
+              <Trophy className="text-yellow-400" size={28} weight="fill" title="Stanley Cup Champion" />
+            )}
           </div>
           
           <Card>
