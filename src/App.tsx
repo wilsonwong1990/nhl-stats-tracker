@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatLeaderCard } from '@/components/StatLeaderCard'
 import { PlayerModal } from '@/components/PlayerModal'
+import { GameModal } from '@/components/GameModal'
 import { 
   Activity,
   CaretLeft, 
@@ -77,6 +78,10 @@ function App() {
   // Player modal state
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | RosterPlayer | null>(null)
   const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false)
+
+  // Game modal state
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [isGameModalOpen, setIsGameModalOpen] = useState(false)
 
   const loadData = async (forceRefresh = false) => {
     setIsLoading(true)
@@ -309,6 +314,16 @@ function App() {
     setSelectedPlayer(null)
   }
 
+  const handleGameClick = (game: Game) => {
+    setSelectedGameId(game.id)
+    setIsGameModalOpen(true)
+  }
+
+  const handleCloseGameModal = () => {
+    setIsGameModalOpen(false)
+    setSelectedGameId(null)
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -413,7 +428,8 @@ function App() {
                         {currentGames.map((game, index) => (
                           <tr 
                             key={game.id} 
-                            className={index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'}
+                            className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} cursor-pointer hover:bg-accent/10 transition-colors`}
+                            onClick={() => handleGameClick(game)}
                           >
                             <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
                             <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
@@ -648,6 +664,12 @@ function App() {
         isOpen={isPlayerModalOpen}
         onClose={handleCloseModal}
         player={selectedPlayer}
+      />
+
+      <GameModal 
+        isOpen={isGameModalOpen}
+        onClose={handleCloseGameModal}
+        gameId={selectedGameId}
       />
     </div>
   );

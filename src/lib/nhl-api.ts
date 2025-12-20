@@ -17,6 +17,45 @@ export interface Game {
   lastPeriodType?: string // 'REG', 'OT', 'SO', etc.
 }
 
+export interface GameDetails {
+  id: string
+  gameDate: string
+  venue: string
+  homeTeam: {
+    name: string
+    abbrev: string
+    score?: number
+    shots?: number
+  }
+  awayTeam: {
+    name: string
+    abbrev: string
+    score?: number
+    shots?: number
+  }
+  period?: number
+  periodType?: string
+  gameState: string
+  goalScorers?: Array<{
+    name: string
+    team: string
+    period: number
+    timeInPeriod: string
+  }>
+  penalties?: Array<{
+    player: string
+    team: string
+    period: number
+    timeInPeriod: string
+    penalty: string
+    duration: number
+  }>
+  threeStars?: Array<{
+    name: string
+    position: string
+  }>
+}
+
 export interface PlayerStat {
   name: string
   value: number
@@ -847,6 +886,175 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
     }
     console.error(`Error fetching ${team.nhlAbbrev} stats:`, error)
     throw error
+  }
+}
+
+export async function fetchGameDetails(gameId: string): Promise<GameDetails | null> {
+  // Return mock data if we're in mock mode
+  const useMock = import.meta.env?.VITE_USE_MOCK === 'true'
+  if (useMock || gameId.startsWith('mock-')) {
+    console.log('Returning mock game details for:', gameId)
+    
+    // Mock completed game with full details
+    if (gameId === 'mock-completed') {
+      return {
+        id: gameId,
+        gameDate: '2025-12-15',
+        venue: 'T-Mobile Arena',
+        homeTeam: {
+          name: 'Vegas Golden Knights',
+          abbrev: 'VGK',
+          score: 4,
+          shots: 32
+        },
+        awayTeam: {
+          name: 'Colorado Avalanche',
+          abbrev: 'COL',
+          score: 3,
+          shots: 28
+        },
+        gameState: 'OFF',
+        period: 3,
+        periodType: 'REG',
+        threeStars: [
+          { name: 'Jack Eichel', position: 'C' },
+          { name: 'Nathan MacKinnon', position: 'C' },
+          { name: 'Adin Hill', position: 'G' }
+        ],
+        goalScorers: [
+          { name: 'Jack Eichel', team: 'VGK', period: 1, timeInPeriod: '5:23' },
+          { name: 'Nathan MacKinnon', team: 'COL', period: 1, timeInPeriod: '12:45' },
+          { name: 'Mark Stone', team: 'VGK', period: 2, timeInPeriod: '3:15' },
+          { name: 'Mikko Rantanen', team: 'COL', period: 2, timeInPeriod: '10:22' },
+          { name: 'Ivan Barbashev', team: 'VGK', period: 3, timeInPeriod: '8:17' },
+          { name: 'Cale Makar', team: 'COL', period: 3, timeInPeriod: '14:56' },
+          { name: 'Tomas Hertl', team: 'VGK', period: 3, timeInPeriod: '18:32' }
+        ],
+        penalties: [
+          { player: 'Shea Theodore', team: 'VGK', period: 1, timeInPeriod: '8:45', penalty: 'Tripping', duration: 2 },
+          { player: 'Devon Toews', team: 'COL', period: 2, timeInPeriod: '5:12', penalty: 'High-sticking', duration: 2 },
+          { player: 'William Karlsson', team: 'VGK', period: 3, timeInPeriod: '11:23', penalty: 'Holding', duration: 2 }
+        ]
+      }
+    }
+    
+    // Return mock data for future games
+    return {
+      id: gameId,
+      gameDate: new Date().toISOString(),
+      venue: 'T-Mobile Arena',
+      homeTeam: {
+        name: 'Vegas Golden Knights',
+        abbrev: 'VGK',
+        score: undefined,
+        shots: undefined
+      },
+      awayTeam: {
+        name: 'Colorado Avalanche',
+        abbrev: 'COL',
+        score: undefined,
+        shots: undefined
+      },
+      gameState: 'FUT',
+      period: undefined,
+      periodType: undefined
+    }
+  }
+  
+  try {
+    const url = `${NHL_API_BASE}/gamecenter/${gameId}/boxscore`
+    console.log('Fetching game details from:', url)
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      console.error('Game details fetch failed:', response.status, response.statusText)
+      return null
+    }
+    
+    const data = await response.json()
+    console.log('Game details received:', data)
+    
+    // Parse the response to extract relevant game information
+    const homeTeam = data.homeTeam || {}
+    const awayTeam = data.awayTeam || {}
+    const gameInfo = data.gameInfo || data
+    
+    // Extract goal scorers from scoring plays
+    const goalScorers: GameDetails['goalScorers'] = []
+    if (data.summary?.scoring) {
+      for (const period of data.summary.scoring) {
+        const periodNum = period.periodDescriptor?.number || 0
+        for (const goal of period.goals || []) {
+          goalScorers.push({
+            name: `${goal.firstName?.default || ''} ${goal.lastName?.default || ''}`.trim() || goal.name?.default || 'Unknown',
+            team: goal.teamAbbrev?.default || goal.teamAbbrev || '',
+            period: periodNum,
+            timeInPeriod: goal.timeInPeriod || ''
+          })
+        }
+      }
+    }
+    
+    // Extract penalties
+    const penalties: GameDetails['penalties'] = []
+    if (data.summary?.penalties) {
+      for (const period of data.summary.penalties) {
+        const periodNum = period.periodDescriptor?.number || 0
+        for (const penalty of period.penalties || []) {
+          penalties.push({
+            player: `${penalty.firstName?.default || ''} ${penalty.lastName?.default || ''}`.trim() || penalty.name?.default || 'Unknown',
+            team: penalty.teamAbbrev?.default || penalty.teamAbbrev || '',
+            period: periodNum,
+            timeInPeriod: penalty.timeInPeriod || '',
+            penalty: penalty.type?.default || penalty.descKey || '',
+            duration: penalty.duration || 0
+          })
+        }
+      }
+    }
+    
+    // Extract three stars
+    const threeStars: GameDetails['threeStars'] = []
+    if (data.summary?.threeStars) {
+      for (const star of data.summary.threeStars) {
+        threeStars.push({
+          name: `${star.firstName?.default || ''} ${star.lastName?.default || ''}`.trim() || star.name?.default || 'Unknown',
+          position: star.position || ''
+        })
+      }
+    }
+    
+    return {
+      id: gameId,
+      gameDate: gameInfo.gameDate || gameInfo.startTimeUTC || '',
+      venue: gameInfo.venue?.default || data.venue?.default || 'Unknown Venue',
+      homeTeam: {
+        name: `${homeTeam.placeName?.default || ''} ${homeTeam.name?.default || ''}`.trim() || homeTeam.abbrev || '',
+        abbrev: homeTeam.abbrev || '',
+        score: homeTeam.score,
+        shots: homeTeam.sog
+      },
+      awayTeam: {
+        name: `${awayTeam.placeName?.default || ''} ${awayTeam.name?.default || ''}`.trim() || awayTeam.abbrev || '',
+        abbrev: awayTeam.abbrev || '',
+        score: awayTeam.score,
+        shots: awayTeam.sog
+      },
+      period: data.period,
+      periodType: data.periodDescriptor?.periodType || gameInfo.periodDescriptor?.periodType,
+      gameState: data.gameState || gameInfo.gameState || 'FUT',
+      goalScorers: goalScorers.length > 0 ? goalScorers : undefined,
+      penalties: penalties.length > 0 ? penalties : undefined,
+      threeStars: threeStars.length > 0 ? threeStars : undefined
+    }
+  } catch (error) {
+    console.error('Error fetching game details:', error)
+    return null
   }
 }
 
