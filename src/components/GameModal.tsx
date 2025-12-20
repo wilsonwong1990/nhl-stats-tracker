@@ -207,11 +207,17 @@ export function GameModal({ isOpen, onClose, gameId }: GameModalProps) {
                     <Warning className="text-amber-400" size={20} weight="bold" />
                     <h3 className="text-lg font-semibold">Penalties</h3>
                   </div>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div 
+                    className="space-y-2 max-h-48 overflow-y-auto" 
+                    role="list" 
+                    aria-label="Penalties list"
+                    tabIndex={0}
+                  >
                     {gameDetails.penalties.map((penalty, index) => (
                       <div 
                         key={index}
                         className="flex items-start justify-between py-2 px-3 rounded-md hover:bg-muted/50 transition-colors gap-2"
+                        role="listitem"
                       >
                         <div className="flex items-start gap-3 flex-1">
                           <Badge variant="outline" className="text-xs font-mono">

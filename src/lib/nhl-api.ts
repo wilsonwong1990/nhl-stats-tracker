@@ -979,19 +979,29 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
     const data = await response.json()
     console.log('Game details received:', data)
     
+    // Helper function to construct player name
+    const getPlayerName = (player: any): string => {
+      return `${player.firstName?.default || ''} ${player.lastName?.default || ''}`.trim() || player.name?.default || 'Unknown'
+    }
+    
+    // Helper function to construct team name
+    const getTeamName = (team: any): string => {
+      return `${team.placeName?.default || ''} ${team.name?.default || ''}`.trim() || team.abbrev || ''
+    }
+    
     // Parse the response to extract relevant game information
     const homeTeam = data.homeTeam || {}
     const awayTeam = data.awayTeam || {}
     const gameInfo = data.gameInfo || data
     
-    // Extract goal scorers from scoring plays
+    // Extract goal scorers from scoring plays (limit to 20 goals to avoid performance issues)
     const goalScorers: GameDetails['goalScorers'] = []
     if (data.summary?.scoring) {
       for (const period of data.summary.scoring) {
         const periodNum = period.periodDescriptor?.number || 0
-        for (const goal of period.goals || []) {
+        for (const goal of (period.goals || []).slice(0, 20)) {
           goalScorers.push({
-            name: `${goal.firstName?.default || ''} ${goal.lastName?.default || ''}`.trim() || goal.name?.default || 'Unknown',
+            name: getPlayerName(goal),
             team: goal.teamAbbrev?.default || goal.teamAbbrev || '',
             period: periodNum,
             timeInPeriod: goal.timeInPeriod || ''
@@ -1000,14 +1010,14 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
       }
     }
     
-    // Extract penalties
+    // Extract penalties (limit to 30 penalties to avoid performance issues)
     const penalties: GameDetails['penalties'] = []
     if (data.summary?.penalties) {
       for (const period of data.summary.penalties) {
         const periodNum = period.periodDescriptor?.number || 0
-        for (const penalty of period.penalties || []) {
+        for (const penalty of (period.penalties || []).slice(0, 30)) {
           penalties.push({
-            player: `${penalty.firstName?.default || ''} ${penalty.lastName?.default || ''}`.trim() || penalty.name?.default || 'Unknown',
+            player: getPlayerName(penalty),
             team: penalty.teamAbbrev?.default || penalty.teamAbbrev || '',
             period: periodNum,
             timeInPeriod: penalty.timeInPeriod || '',
@@ -1018,12 +1028,12 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
       }
     }
     
-    // Extract three stars
+    // Extract three stars (limit to 3 as expected)
     const threeStars: GameDetails['threeStars'] = []
     if (data.summary?.threeStars) {
-      for (const star of data.summary.threeStars) {
+      for (const star of data.summary.threeStars.slice(0, 3)) {
         threeStars.push({
-          name: `${star.firstName?.default || ''} ${star.lastName?.default || ''}`.trim() || star.name?.default || 'Unknown',
+          name: getPlayerName(star),
           position: star.position || ''
         })
       }
@@ -1034,13 +1044,13 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
       gameDate: gameInfo.gameDate || gameInfo.startTimeUTC || '',
       venue: gameInfo.venue?.default || data.venue?.default || 'Unknown Venue',
       homeTeam: {
-        name: `${homeTeam.placeName?.default || ''} ${homeTeam.name?.default || ''}`.trim() || homeTeam.abbrev || '',
+        name: getTeamName(homeTeam),
         abbrev: homeTeam.abbrev || '',
         score: homeTeam.score,
         shots: homeTeam.sog
       },
       awayTeam: {
-        name: `${awayTeam.placeName?.default || ''} ${awayTeam.name?.default || ''}`.trim() || awayTeam.abbrev || '',
+        name: getTeamName(awayTeam),
         abbrev: awayTeam.abbrev || '',
         score: awayTeam.score,
         shots: awayTeam.sog
