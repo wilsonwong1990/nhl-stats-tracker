@@ -1,5 +1,8 @@
+import { getCurrentSeason } from './seasons'
+
 const NHL_API_BASE = '/nhl-api/v1'
-const DEFAULT_SEASON = '20252026'
+// Default to current season based on current date
+export const DEFAULT_SEASON = getCurrentSeason().id
 // Optional mock data import (only used when env flag is set)
 import getMockData from './mock-data'
 import { DEFAULT_TEAM_ID, getTeamInfo, type TeamId, type TeamInfo } from './teams'
@@ -15,6 +18,7 @@ export interface Game {
   awayScore?: number
   gameState?: string // 'FUT' for future, 'LIVE' for live, 'FINAL' or 'OFF' for completed
   lastPeriodType?: string // 'REG', 'OT', 'SO', etc.
+  gameType?: number // 1: Preseason, 2: Regular Season, 3: Playoffs, 4: All-Star
 }
 
 export interface PlayerStat {
@@ -206,7 +210,8 @@ export async function fetchTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON)
           homeScore: homeScore,
           awayScore: awayScore,
           gameState: gameState,
-          lastPeriodType: lastPeriodType ? lastPeriodType.trim().toUpperCase() : undefined
+          lastPeriodType: lastPeriodType ? lastPeriodType.trim().toUpperCase() : undefined,
+          gameType: gameType
         })
       }
     }
