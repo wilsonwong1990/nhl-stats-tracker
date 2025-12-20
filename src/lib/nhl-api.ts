@@ -25,6 +25,7 @@ export interface PlayerStat {
   name: string
   value: number
   position?: string
+  playerId?: number
   goals?: number
   assists?: number
   points?: number
@@ -60,6 +61,7 @@ export interface RosterPlayer {
   position: string
   number: number
   captaincy?: 'C' | 'A' | null
+  playerId?: number
   goals?: number
   assists?: number
   points?: number
@@ -534,6 +536,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
         value: p.points || 0,
         position: p.position || p.positionCode || 'F',
+        playerId: p.playerId || p.id || undefined,
         goals: p.goals || 0,
         assists: p.assists || 0,
         points: p.points || 0,
@@ -553,6 +556,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
         value: p.goals || 0,
         position: p.position || p.positionCode || 'F',
+        playerId: p.playerId || p.id || undefined,
         goals: p.goals || 0,
         assists: p.assists || 0,
         points: p.points || 0,
@@ -572,6 +576,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
         value: p.assists || 0,
         position: p.position || p.positionCode || 'F',
+        playerId: p.playerId || p.id || undefined,
         goals: p.goals || 0,
         assists: p.assists || 0,
         points: p.points || 0,
@@ -591,6 +596,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
         value: p.plusMinus || p.plus_minus || p.plusMinusValue || 0,
         position: p.position || p.positionCode || 'F',
+        playerId: p.playerId || p.id || undefined,
         goals: p.goals || 0,
         assists: p.assists || 0,
         points: p.points || 0,
@@ -612,6 +618,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
         name: `${p.firstName?.default || ''} ${p.lastName?.default || ''}`.trim(),
         value: parseFloat((p.avgShiftsPerGame || p.avgShiftDuration || p.shiftDurationAvg || 0).toFixed(1)),
         position: p.position || p.positionCode || 'F',
+        playerId: p.playerId || p.id || undefined,
         goals: p.goals || 0,
         assists: p.assists || 0,
         points: p.points || 0,
@@ -634,6 +641,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
         name: `${g.firstName?.default || ''} ${g.lastName?.default || ''}`.trim(),
         value: parseFloat((g.savePctg || g.savePercentage || 0).toFixed(3)),
         position: 'G',
+        playerId: g.playerId || g.id || undefined,
         gamesPlayed: g.gamesPlayed || g.games || 0,
         wins: g.wins || 0,
         losses: g.losses || 0,
@@ -732,6 +740,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
                 position,
                 number,
                 captaincy,
+                playerId: player.playerId || player.id || undefined,
                 gamesPlayed: goalieStats.gamesPlayed || goalieStats.games || 0,
                 wins: goalieStats.wins || 0,
                 losses: goalieStats.losses || 0,
@@ -750,6 +759,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
               position, 
               number, 
               captaincy,
+              playerId: player.playerId || player.id || undefined,
               goals: skaterStats?.goals || 0,
               assists: skaterStats?.assists || 0,
               points: skaterStats?.points || 0,
@@ -797,6 +807,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
             name, 
             position, 
             number,
+            playerId: player.playerId || player.id || undefined,
             goals: player.goals || 0,
             assists: player.assists || 0,
             points: player.points || 0,
@@ -817,6 +828,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
             name,
             position: 'G',
             number,
+            playerId: player.playerId || player.id || undefined,
             gamesPlayed: player.gamesPlayed || player.games || 0,
             wins: player.wins || 0,
             losses: player.losses || 0,
@@ -893,5 +905,93 @@ export async function fetchAllTeamData(inputTeam: TeamInfo | TeamId, season = DE
   return {
     games,
     ...stats
+  }
+}
+
+export interface CareerStats {
+  goals: number
+  assists: number
+  points: number
+  powerPlayGoals: number
+  powerPlayPoints: number
+  shorthandedGoals: number
+  shorthandedPoints: number
+  gameWinningGoals: number
+  gamesPlayed: number
+  // Goalie-specific career stats
+  wins?: number
+  losses?: number
+  otLosses?: number
+  shutouts?: number
+  saves?: number
+  shotsAgainst?: number
+  goalsAgainst?: number
+}
+
+export async function fetchPlayerCareerStats(playerId: number): Promise<CareerStats | null> {
+  try {
+    const url = `${NHL_API_BASE}/player/${playerId}/landing`
+    console.log(`Fetching career stats for player ${playerId} from:`, url)
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      console.error('Player career stats fetch failed:', response.status, response.statusText)
+      return null
+    }
+    
+    const data = await response.json()
+    console.log('Player career data received:', data)
+    
+    // Extract career totals from the response
+    const careerTotals = data.careerTotals?.regularSeason
+    
+    if (!careerTotals) {
+      console.warn('No career totals found in player data')
+      return null
+    }
+    
+    // Check if it's a goalie
+    const isGoalie = data.position === 'G'
+    
+    if (isGoalie) {
+      return {
+        goals: 0,
+        assists: 0,
+        points: 0,
+        powerPlayGoals: 0,
+        powerPlayPoints: 0,
+        shorthandedGoals: 0,
+        shorthandedPoints: 0,
+        gameWinningGoals: 0,
+        gamesPlayed: careerTotals.gamesPlayed || 0,
+        wins: careerTotals.wins || 0,
+        losses: careerTotals.losses || 0,
+        otLosses: careerTotals.otLosses || 0,
+        shutouts: careerTotals.shutouts || 0,
+        saves: careerTotals.saves || 0,
+        shotsAgainst: careerTotals.shotsAgainst || 0,
+        goalsAgainst: careerTotals.goalsAgainst || 0
+      }
+    }
+    
+    return {
+      goals: careerTotals.goals || 0,
+      assists: careerTotals.assists || 0,
+      points: careerTotals.points || 0,
+      powerPlayGoals: careerTotals.powerPlayGoals || 0,
+      powerPlayPoints: careerTotals.powerPlayPoints || 0,
+      shorthandedGoals: careerTotals.shorthandedGoals || 0,
+      shorthandedPoints: careerTotals.shorthandedPoints || 0,
+      gameWinningGoals: careerTotals.gameWinningGoals || 0,
+      gamesPlayed: careerTotals.gamesPlayed || 0
+    }
+  } catch (error) {
+    console.error(`Error fetching career stats for player ${playerId}:`, error)
+    return null
   }
 }
