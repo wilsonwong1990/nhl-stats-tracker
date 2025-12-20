@@ -1,5 +1,6 @@
 export type TeamId =
   | 'ANA'
+  | 'ARI'
   | 'BOS'
   | 'BUF'
   | 'CGY'
@@ -50,6 +51,8 @@ export interface TeamInfo {
   nhlAbbrev: TeamId
   puckpediaSlug?: string
   theme: TeamTheme
+  inceptionYear: number // First season start year (e.g., 2017 for VGK's 2017-2018 season)
+  cessationYear?: number // Last season start year if team no longer exists (e.g., 2023 for ARI's 2023-2024 season)
 }
 
 interface ThemeOverrides {
@@ -78,6 +81,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Anaheim Ducks',
     nhlAbbrev: 'ANA',
     puckpediaSlug: 'anaheim-ducks',
+    inceptionYear: 1993, // Started as Mighty Ducks of Anaheim in 1993-94
     theme: {
       primary: '#F47A38',
       onPrimary: '#111111',
@@ -88,12 +92,31 @@ export const TEAMS: readonly TeamInfo[] = [
     }
   },
   {
+    id: 'ARI',
+    city: 'Arizona',
+    name: 'Coyotes',
+    fullName: 'Arizona Coyotes',
+    nhlAbbrev: 'ARI',
+    puckpediaSlug: 'arizona-coyotes',
+    inceptionYear: 1996, // Moved from Winnipeg in 1996-97 as Phoenix Coyotes, became Arizona in 2014
+    cessationYear: 2023, // Last season was 2023-24, relocated to Utah in 2024
+    theme: {
+      primary: '#8C2633',
+      onPrimary: '#F4E6DC',
+      secondary: '#E2D6B5',
+      onSecondary: '#5C1F28',
+      background: '#0F0606',
+      foreground: '#F9F4F0'
+    }
+  },
+  {
     id: 'UTA',
     city: 'Utah',
     name: 'Mammoth',
     fullName: 'Utah Mammoth',
     nhlAbbrev: 'UTA',
     puckpediaSlug: 'utah-mammoth',
+    inceptionYear: 2024, // Relocated from Arizona in 2024-25
     theme: {
       primary: '#5E0F7A',
       onPrimary: '#FCEFFF',
@@ -110,6 +133,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Boston Bruins',
     nhlAbbrev: 'BOS',
     puckpediaSlug: 'boston-bruins',
+    inceptionYear: 1924,
     theme: {
       primary: '#FFB81C',
       onPrimary: '#111111',
@@ -126,6 +150,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Buffalo Sabres',
     nhlAbbrev: 'BUF',
     puckpediaSlug: 'buffalo-sabres',
+    inceptionYear: 1970,
     theme: {
       primary: '#002654',
       onPrimary: '#FFFFFF',
@@ -142,6 +167,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Calgary Flames',
     nhlAbbrev: 'CGY',
     puckpediaSlug: 'calgary-flames',
+    inceptionYear: 1980,
     theme: {
       primary: '#C8102E',
       onPrimary: '#FFE5D9',
@@ -158,6 +184,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Carolina Hurricanes',
     nhlAbbrev: 'CAR',
     puckpediaSlug: 'carolina-hurricanes',
+    inceptionYear: 1997,
     theme: {
       primary: '#CC0000',
       onPrimary: '#FFECEC',
@@ -174,6 +201,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Chicago Blackhawks',
     nhlAbbrev: 'CHI',
     puckpediaSlug: 'chicago-blackhawks',
+    inceptionYear: 1926,
     theme: {
       primary: '#CF0A2C',
       onPrimary: '#FFE6EB',
@@ -190,6 +218,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Colorado Avalanche',
     nhlAbbrev: 'COL',
     puckpediaSlug: 'colorado-avalanche',
+    inceptionYear: 1995,
     theme: {
       primary: '#6F263D',
       onPrimary: '#F8E4EC',
@@ -206,6 +235,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Columbus Blue Jackets',
     nhlAbbrev: 'CBJ',
     puckpediaSlug: 'columbus-blue-jackets',
+    inceptionYear: 2000,
     theme: {
       primary: '#002654',
       onPrimary: '#FFFFFF',
@@ -222,6 +252,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Dallas Stars',
     nhlAbbrev: 'DAL',
     puckpediaSlug: 'dallas-stars',
+    inceptionYear: 1993,
     theme: {
       primary: '#006847',
       onPrimary: '#E6FFF6',
@@ -238,6 +269,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Detroit Red Wings',
     nhlAbbrev: 'DET',
     puckpediaSlug: 'detroit-red-wings',
+    inceptionYear: 1926,
     theme: {
       primary: '#CE1126',
       onPrimary: '#FFE6EA',
@@ -254,6 +286,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Edmonton Oilers',
     nhlAbbrev: 'EDM',
     puckpediaSlug: 'edmonton-oilers',
+    inceptionYear: 1979,
     theme: {
       primary: '#041E42',
       onPrimary: '#FFFFFF',
@@ -270,6 +303,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Florida Panthers',
     nhlAbbrev: 'FLA',
     puckpediaSlug: 'florida-panthers',
+    inceptionYear: 1993,
     theme: {
       primary: '#041E42',
       onPrimary: '#FFFFFF',
@@ -286,6 +320,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Los Angeles Kings',
     nhlAbbrev: 'LAK',
     puckpediaSlug: 'los-angeles-kings',
+    inceptionYear: 1967,
     theme: {
       primary: '#111111',
       onPrimary: '#FFFFFF',
@@ -302,6 +337,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Minnesota Wild',
     nhlAbbrev: 'MIN',
     puckpediaSlug: 'minnesota-wild',
+    inceptionYear: 2000,
     theme: {
       primary: '#154734',
       onPrimary: '#E6FFF6',
@@ -318,6 +354,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Montréal Canadiens',
     nhlAbbrev: 'MTL',
     puckpediaSlug: 'montreal-canadiens',
+    inceptionYear: 1917,
     theme: {
       primary: '#AF1E2D',
       onPrimary: '#FFE6EA',
@@ -334,6 +371,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Nashville Predators',
     nhlAbbrev: 'NSH',
     puckpediaSlug: 'nashville-predators',
+    inceptionYear: 1998,
     theme: {
       primary: '#FFB81C',
       onPrimary: '#13213B',
@@ -350,6 +388,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'New Jersey Devils',
     nhlAbbrev: 'NJD',
     puckpediaSlug: 'new-jersey-devils',
+    inceptionYear: 1982,
     theme: {
       primary: '#CE1126',
       onPrimary: '#FFE5EA',
@@ -366,6 +405,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'New York Islanders',
     nhlAbbrev: 'NYI',
     puckpediaSlug: 'new-york-islanders',
+    inceptionYear: 1972,
     theme: {
       primary: '#00539B',
       onPrimary: '#FFFFFF',
@@ -382,6 +422,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'New York Rangers',
     nhlAbbrev: 'NYR',
     puckpediaSlug: 'new-york-rangers',
+    inceptionYear: 1926,
     theme: {
       primary: '#0038A8',
       onPrimary: '#FFFFFF',
@@ -398,6 +439,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Ottawa Senators',
     nhlAbbrev: 'OTT',
     puckpediaSlug: 'ottawa-senators',
+    inceptionYear: 1992,
     theme: {
       primary: '#C52032',
       onPrimary: '#FFE6EA',
@@ -414,6 +456,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Philadelphia Flyers',
     nhlAbbrev: 'PHI',
     puckpediaSlug: 'philadelphia-flyers',
+    inceptionYear: 1967,
     theme: {
       primary: '#F74902',
       onPrimary: '#160600',
@@ -430,6 +473,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Pittsburgh Penguins',
     nhlAbbrev: 'PIT',
     puckpediaSlug: 'pittsburgh-penguins',
+    inceptionYear: 1967,
     theme: {
       primary: '#FCB514',
       onPrimary: '#111111',
@@ -446,6 +490,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Seattle Kraken',
     nhlAbbrev: 'SEA',
     puckpediaSlug: 'seattle-kraken',
+    inceptionYear: 2021,
     theme: {
       primary: '#001628',
       onPrimary: '#E6F8FF',
@@ -462,6 +507,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'San Jose Sharks',
     nhlAbbrev: 'SJS',
     puckpediaSlug: 'san-jose-sharks',
+    inceptionYear: 1991,
     theme: {
       primary: '#006D75',
       onPrimary: '#E6FBFF',
@@ -478,6 +524,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'St. Louis Blues',
     nhlAbbrev: 'STL',
     puckpediaSlug: 'st-louis-blues',
+    inceptionYear: 1967,
     theme: {
       primary: '#002F87',
       onPrimary: '#FFFFFF',
@@ -494,6 +541,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Tampa Bay Lightning',
     nhlAbbrev: 'TBL',
     puckpediaSlug: 'tampa-bay-lightning',
+    inceptionYear: 1992,
     theme: {
       primary: '#002868',
       onPrimary: '#FFFFFF',
@@ -510,6 +558,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Toronto Maple Leafs',
     nhlAbbrev: 'TOR',
     puckpediaSlug: 'toronto-maple-leafs',
+    inceptionYear: 1917,
     theme: {
       primary: '#00205B',
       onPrimary: '#FFFFFF',
@@ -526,6 +575,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Vancouver Canucks',
     nhlAbbrev: 'VAN',
     puckpediaSlug: 'vancouver-canucks',
+    inceptionYear: 1970,
     theme: {
       primary: '#00205B',
       onPrimary: '#FFFFFF',
@@ -542,6 +592,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Vegas Golden Knights',
     nhlAbbrev: 'VGK',
     puckpediaSlug: 'vegas-golden-knights',
+    inceptionYear: 2017,
     theme: {
       primary: '#B4975A',
       onPrimary: '#111722',
@@ -558,6 +609,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Washington Capitals',
     nhlAbbrev: 'WSH',
     puckpediaSlug: 'washington-capitals',
+    inceptionYear: 1974,
     theme: {
       primary: '#041E42',
       onPrimary: '#FFFFFF',
@@ -574,6 +626,7 @@ export const TEAMS: readonly TeamInfo[] = [
     fullName: 'Winnipeg Jets',
     nhlAbbrev: 'WPG',
     puckpediaSlug: 'winnipeg-jets',
+    inceptionYear: 2011,
     theme: {
       primary: '#041E42',
       onPrimary: '#FFFFFF',

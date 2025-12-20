@@ -41,10 +41,12 @@ import {
   CheckCircle,
   XCircle,
   Circle,
-  LinkSimple
+  LinkSimple,
+  Trophy
 } from '@phosphor-icons/react'
-import { fetchAllTeamData, fetchGameDetails, type Game, type GameDetails, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo } from '@/lib/nhl-api'
+import { fetchAllTeamData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, DEFAULT_SEASON } from '@/lib/nhl-api'
 import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
+import { getAvailableSeasons, getCurrentSeason, formatSeasonDisplay } from '@/lib/seasons'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
@@ -57,10 +59,32 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000
 
 function App() {
   const teams = useMemo(() => listTeams(), [])
+  const availableSeasons = useMemo(() => getAvailableSeasons(25), [])
   const [selectedTeamId, setSelectedTeamId] = useKV<TeamId>('selected-team', DEFAULT_TEAM_ID)
+  const [selectedSeason, setSelectedSeason] = useKV<string>('selected-season', DEFAULT_SEASON)
   const team = useMemo(() => getTeamInfo(selectedTeamId), [selectedTeamId])
-  const [currentPage, setCurrentPage] = useKV<number>(`schedule-page-${team.id}`, 0)
-  const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>(`team-data-${team.id}`, null)
+  
+  // Check if team existed in selected season
+  const teamExistedInSeason = useMemo(() => {
+    const seasonStartYear = parseInt(selectedSeason.substring(0, 4))
+    const teamInceptionYear = team.inceptionYear
+    const teamCessationYear = team.cessationYear
+    
+    // Team must have started by this season
+    if (seasonStartYear < teamInceptionYear) {
+      return false
+    }
+    
+    // If team has a cessation year, it must not have ended before this season
+    if (teamCessationYear && seasonStartYear > teamCessationYear) {
+      return false
+    }
+    
+    return true
+  }, [selectedSeason, team])
+  
+  const [currentPage, setCurrentPage] = useKV<number>(`schedule-page-${team.id}-${selectedSeason}`, 0)
+  const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>(`team-data-${team.id}-${selectedSeason}`, null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -99,6 +123,23 @@ function App() {
     setIsLoading(true)
     setError(null)
 
+    // If team didn't exist in this season, clear data and don't fetch
+    if (!teamExistedInSeason) {
+      console.log(`${team.fullName} did not exist in ${selectedSeason}`)
+      setGames([])
+      setPointLeaders([])
+      setGoalLeaders([])
+      setAssistLeaders([])
+      setPlusMinusLeaders([])
+      setAvgShiftsLeaders([])
+      setGoalieStats([])
+      setInjuries([])
+      setRoster([])
+      setStandings({ conferencePosition: 0, isWildcard: false })
+      setIsLoading(false)
+      return
+    }
+
     const now = Date.now()
     const cached = cachedTeamData
 
@@ -119,8 +160,8 @@ function App() {
     }
 
     try {
-      console.log(`Fetching fresh data from NHL API for ${team.nhlAbbrev}...`)
-      const data = await fetchAllTeamData(team)
+      console.log(`Fetching fresh data from NHL API for ${team.nhlAbbrev} season ${selectedSeason}...`)
+      const data = await fetchAllTeamData(team, selectedSeason)
       
       console.log('Data loaded successfully:', data)
       setGames(data.games)
@@ -184,7 +225,7 @@ function App() {
     setGameDetailsLoading({})
     loadData(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team.id])
+  }, [team.id, selectedSeason])
 
   // Set page to show upcoming games when data loads
   useEffect(() => {
@@ -321,13 +362,29 @@ function App() {
     }
   };
 
-  // Compute record (wins-losses) from completed games
-  const completedGames = games.filter(isGameCompleted)
-  const derivedWins = completedGames.filter(isSelectedTeamWin).length
-  const derivedLosses = completedGames.length - derivedWins
-  const derivedOTLosses = completedGames.filter(game => !isSelectedTeamWin(game) && isOvertimeDecision(game)).length
-  const derivedRegulationLosses = Math.max(0, derivedLosses - derivedOTLosses)
-  const gamesRemaining = games.filter(game => !isGameCompleted(game) && game.gameState !== 'LIVE').length
+  // Separate regular season and playoff games
+  // Regular season is gameType 2, or undefined (for backwards compatibility with older data)
+  const regularSeasonGames = games.filter(game => game.gameType === 2 || game.gameType === undefined)
+  const playoffGames = games.filter(game => game.gameType === 3)
+  
+  // Compute regular season record from completed regular season games only
+  const completedRegularSeasonGames = regularSeasonGames.filter(isGameCompleted)
+  const derivedRegularSeasonWins = completedRegularSeasonGames.filter(isSelectedTeamWin).length
+  const derivedRegularSeasonLosses = completedRegularSeasonGames.length - derivedRegularSeasonWins
+  const derivedRegularSeasonOTLosses = completedRegularSeasonGames.filter(game => !isSelectedTeamWin(game) && isOvertimeDecision(game)).length
+  const derivedRegularSeasonRegulationLosses = Math.max(0, derivedRegularSeasonLosses - derivedRegularSeasonOTLosses)
+  
+  // Compute playoff record from completed playoff games
+  const completedPlayoffGames = playoffGames.filter(isGameCompleted)
+  const playoffWins = completedPlayoffGames.filter(isSelectedTeamWin).length
+  const playoffLosses = completedPlayoffGames.length - playoffWins
+  
+  // Check if this team won the Stanley Cup this season (16 playoff wins)
+  const wonStanleyCup = playoffWins === 16
+  
+  const gamesRemaining = regularSeasonGames.filter(game => !isGameCompleted(game) && game.gameState !== 'LIVE').length
+  
+  // Use official standings for regular season record (standings are regular season only)
   const standingsWins = typeof standings.wins === 'number' ? standings.wins : undefined
   const standingsLosses = typeof standings.losses === 'number' ? standings.losses : undefined
   const standingsOTLosses = typeof standings.otLosses === 'number' ? standings.otLosses : undefined
@@ -337,14 +394,18 @@ function App() {
     standingsOTLosses !== undefined &&
     (standingsWins + standingsLosses + standingsOTLosses) > 0
 
-  // Prefer official standings record if available and non-empty, otherwise derive from schedule
-  const wins = hasStandingsRecord ? standingsWins! : derivedWins
-  const losses = hasStandingsRecord ? standingsLosses! : derivedRegulationLosses
-  const otLosses = hasStandingsRecord ? standingsOTLosses! : derivedOTLosses
-  // Always show three-part record per request (wins-losses-OT losses)
-  const record = `${wins}-${losses}-${otLosses}`
+  // Prefer official standings record if available and non-empty, otherwise derive from regular season schedule
+  const wins = hasStandingsRecord ? standingsWins! : derivedRegularSeasonWins
+  const losses = hasStandingsRecord ? standingsLosses! : derivedRegularSeasonRegulationLosses
+  const otLosses = hasStandingsRecord ? standingsOTLosses! : derivedRegularSeasonOTLosses
+  // Regular season record (three-part format)
+  const regularSeasonRecord = `${wins}-${losses}-${otLosses}`
+  
+  // Playoff record (if any playoff games exist)
+  const playoffRecord = completedPlayoffGames.length > 0 ? `${playoffWins}-${playoffLosses}` : null
 
   const hasOfficialPoints = typeof standings.points === 'number' && standings.points > 0
+  // Points are regular season only
   const points = hasOfficialPoints
     ? standings.points!
     : (wins * 2) + otLosses
@@ -383,9 +444,28 @@ function App() {
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="text-center space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight text-center">
-            2024-2025 NHL Season Stats Tracker
-          </h1>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight text-center">
+              NHL Season Stats Tracker
+            </h1>
+            <Select
+              value={selectedSeason}
+              onValueChange={(value) => {
+                setSelectedSeason(value)
+              }}
+            >
+              <SelectTrigger className="w-[160px] bg-card border-border">
+                <SelectValue placeholder="Select season" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                {availableSeasons.map((season) => (
+                  <SelectItem key={season.id} value={season.id}>
+                    {season.displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Select
             value={team.id}
             onValueChange={(value) => {
@@ -394,8 +474,11 @@ function App() {
             }}
           >
             <SelectTrigger className="w-full max-w-xl mx-auto bg-transparent border-none shadow-none p-0 focus:ring-0 focus:outline-none focus-visible:ring-0 data-[placeholder]:text-center">
-              <h2 className="text-2xl md:text-3xl font-semibold text-accent tracking-tight text-center w-full">
-                <SelectValue placeholder="Select a team" className="block w-full text-center" />
+              <h2 className="flex w-full items-center justify-center gap-2 text-2xl md:text-3xl font-semibold text-accent tracking-tight text-center">
+                <SelectValue placeholder="Select a team" className="text-center" />
+                {wonStanleyCup && (
+                  <Trophy className="text-yellow-400" size={24} weight="fill" title="Stanley Cup Champion" />
+                )}
               </h2>
             </SelectTrigger>
             <SelectContent className="max-h-[320px]">
@@ -412,9 +495,12 @@ function App() {
               Mock data active – live NHL stats disabled
             </div>
           )}
-          {(completedGames.length > 0 || wins > 0) && (
+          {(completedRegularSeasonGames.length > 0 || wins > 0) && (
             <div className="text-sm text-muted-foreground flex flex-col items-center gap-1">
-              <span>Record: {record}</span>
+              <span>Regular Season: {regularSeasonRecord}</span>
+              {playoffRecord && (
+                <span>Playoffs: {playoffRecord}</span>
+              )}
               {typeof points === 'number' && (
                 <span>Points: {points}</span>
               )}
@@ -447,6 +533,18 @@ function App() {
 
         <Separator className="bg-border" />
 
+        {!teamExistedInSeason ? (
+          <div className="text-center py-12 space-y-4">
+            <div className="text-muted-foreground text-lg">
+              {team.fullName} did not exist during the {formatSeasonDisplay(selectedSeason)} season
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {team.fullName} started in the {team.inceptionYear}-{team.inceptionYear + 1} season
+              {team.cessationYear && ` and played until the ${team.cessationYear}-${team.cessationYear + 1} season`}
+            </div>
+          </div>
+        ) : (
+          <>
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Timer className="text-accent" size={24} weight="bold" />
@@ -759,6 +857,8 @@ function App() {
             </CardContent>
           </Card>
         </section>
+          </>
+        )}
       </div>
 
       <PlayerModal 
