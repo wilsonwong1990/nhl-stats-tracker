@@ -42,8 +42,9 @@ import {
   Circle,
   LinkSimple
 } from '@phosphor-icons/react'
-import { fetchAllTeamData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo } from '@/lib/nhl-api'
+import { fetchAllTeamData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, DEFAULT_SEASON } from '@/lib/nhl-api'
 import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
+import { getAvailableSeasons, getCurrentSeason } from '@/lib/seasons'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
@@ -56,10 +57,12 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000
 
 function App() {
   const teams = useMemo(() => listTeams(), [])
+  const availableSeasons = useMemo(() => getAvailableSeasons(25, 2), [])
   const [selectedTeamId, setSelectedTeamId] = useKV<TeamId>('selected-team', DEFAULT_TEAM_ID)
+  const [selectedSeason, setSelectedSeason] = useKV<string>('selected-season', DEFAULT_SEASON)
   const team = useMemo(() => getTeamInfo(selectedTeamId), [selectedTeamId])
-  const [currentPage, setCurrentPage] = useKV<number>(`schedule-page-${team.id}`, 0)
-  const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>(`team-data-${team.id}`, null)
+  const [currentPage, setCurrentPage] = useKV<number>(`schedule-page-${team.id}-${selectedSeason}`, 0)
+  const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>(`team-data-${team.id}-${selectedSeason}`, null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -102,8 +105,8 @@ function App() {
     }
 
     try {
-      console.log(`Fetching fresh data from NHL API for ${team.nhlAbbrev}...`)
-      const data = await fetchAllTeamData(team)
+      console.log(`Fetching fresh data from NHL API for ${team.nhlAbbrev} season ${selectedSeason}...`)
+      const data = await fetchAllTeamData(team, selectedSeason)
       
       console.log('Data loaded successfully:', data)
       setGames(data.games)
@@ -165,7 +168,7 @@ function App() {
     setCurrentPage(0)
     loadData(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team.id])
+  }, [team.id, selectedSeason])
 
   // Set page to show upcoming games when data loads
   useEffect(() => {
@@ -313,9 +316,30 @@ function App() {
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="text-center space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight text-center">
-            2024-2025 NHL Season Stats Tracker
-          </h1>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight text-center">
+              NHL Season Stats Tracker
+            </h1>
+            <Select
+              value={selectedSeason}
+              onValueChange={(value) => {
+                setSelectedSeason(value)
+                const season = availableSeasons.find(s => s.id === value)
+                toast.success(`Season ${season?.displayName} selected`)
+              }}
+            >
+              <SelectTrigger className="w-[160px] bg-card border-border">
+                <SelectValue placeholder="Select season" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                {availableSeasons.map((season) => (
+                  <SelectItem key={season.id} value={season.id}>
+                    {season.displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Select
             value={team.id}
             onValueChange={(value) => {
