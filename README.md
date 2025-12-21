@@ -75,6 +75,8 @@ All statistics are fetched live from the NHL API and cached for 24 hours.
 
 This project is available in multiple formats for easy deployment:
 
+> **Note**: Docker images and npm package publishing are configured and ready. If you're the maintainer, see the deployment section for publishing instructions.
+
 ### Docker Images
 
 Pre-built Docker images are published to GitHub Container Registry:
