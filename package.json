@@ -1,5 +1,5 @@
 {
-    "name": "@wilsonwong1990/vegas-golden-kn-iron",
+    "name": "@wilsonwong1990/nhl-stats-tracker",
     "version": "1.0.0",
     "type": "module",
     "description": "Vegas Golden Knights Stats Tracker - A comprehensive stats tracking application for the Vegas Golden Knights hockey team",
@@ -7,7 +7,7 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/wilsonwong1990/vegas-golden-kn-iron.git"
+        "url": "git+https://github.com/wilsonwong1990/nhl-stats-tracker.git"
     },
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
