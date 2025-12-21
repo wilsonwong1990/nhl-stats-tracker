@@ -71,14 +71,109 @@ All statistics are fetched live from the NHL API and cached for 24 hours.
 - **State Management**: [@github/spark](https://github.com/githubnext/spark) hooks
 - **Testing**: [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/)
 
+## 📦 Distribution
+
+This project is available in multiple formats for easy deployment:
+
+### Docker Images
+
+Pre-built Docker images are published to GitHub Container Registry:
+- **Registry**: `ghcr.io/wilsonwong1990/nhl-stats-tracker`
+- **Tags**: `latest`, `v{version}`, `main`
+- **Size**: ~50MB (optimized multi-stage build)
+- **Base**: Nginx Alpine (production-ready)
+
+View available images: [GitHub Packages](https://github.com/wilsonwong1990/nhl-stats-tracker/pkgs/container/nhl-stats-tracker)
+
+### npm Package
+
+Published to npm registry for use as a library:
+- **Package**: `nhl-stats-tracker`
+- **Version**: Check [npm](https://www.npmjs.com/package/nhl-stats-tracker) for latest
+- **Bundle Size**: Tree-shakeable, minimal footprint
+- **TypeScript**: Full type definitions included
+
+```bash
+npm view nhl-stats-tracker versions  # View all available versions
+```
+
 ## 🚀 Getting Started
+
+### Quick Start (Pre-built Packages)
+
+#### Using Pre-built Docker Image
+
+If you just want to run the application without building from source, you can use the pre-built Docker image:
+
+```bash
+# Pull and run the latest image
+docker run -d -p 3000:80 --name nhl-stats-tracker ghcr.io/wilsonwong1990/nhl-stats-tracker:latest
+
+# Or using Docker Compose with the pre-built image
+# Create a docker-compose.yml file:
+cat > docker-compose.yml << 'EOF'
+version: '3.8'
+services:
+  nhl-stats-tracker:
+    image: ghcr.io/wilsonwong1990/nhl-stats-tracker:latest
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+EOF
+
+docker-compose up -d
+```
+
+Then open your browser to `http://localhost:3000`
+
+**Available Image Tags:**
+- `latest` - Most recent stable release
+- `v{version}` - Specific version (e.g., `v1.0.0`)
+- `main` - Latest from main branch
+
+#### Using as an npm Package
+
+You can also install and use this project as an npm package in your own application:
+
+```bash
+# Install the package
+npm install nhl-stats-tracker
+
+# Or with yarn
+yarn add nhl-stats-tracker
+
+# Or with pnpm
+pnpm add nhl-stats-tracker
+```
+
+Then import and use in your React application:
+
+```typescript
+import { NHLStatsTracker } from 'nhl-stats-tracker';
+
+function App() {
+  return (
+    <div>
+      <NHLStatsTracker defaultTeam="VGK" />
+    </div>
+  );
+}
+```
+
+**Package Configuration:**
+- Full TypeScript support with type definitions included
+- Tree-shakeable ES modules
+- Compatible with React 18+
+- Zero additional configuration needed
+
+---
 
 ### Prerequisites
 - **Node.js** (v18 or higher recommended)
 - **npm** (v9 or higher) or **yarn** package manager
 - **Docker** (optional, for containerized deployment)
 
-### Installation Methods
+### Installation Methods (Build from Source)
 
 #### Option 1: Standard npm Installation
 
