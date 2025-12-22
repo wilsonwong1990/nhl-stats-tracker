@@ -33,3 +33,14 @@ pids
 
 .spark-workbench-id
 .npmrc
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist-py/
+build-py/
