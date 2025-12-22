@@ -44,3 +44,6 @@ __pycache__/
 *.egg-info/
 dist-py/
 build-py/
+
+# Logs
+logs/*.log
