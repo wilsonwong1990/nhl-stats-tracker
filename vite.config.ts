@@ -24,12 +24,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/nhl-api': {
-        target: 'https://api-web.nhle.com',
+      '/api': {
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        followRedirects: true,
-        rewrite: (path) => path.replace(/^\/nhl-api/, ''),
       },
+      // Keep puckpedia proxy for injury data
       '/puckpedia-api': {
         target: 'https://puckpedia.com',
         changeOrigin: true,

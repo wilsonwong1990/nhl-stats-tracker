@@ -1,6 +1,6 @@
 import { getCurrentSeason } from './seasons'
 
-const API_BASE = '/api'
+const NHL_API_BASE = '/nhl-api/v1'
 // Default to current season based on current date
 export const DEFAULT_SEASON = getCurrentSeason().id
 // Optional mock data import (only used when env flag is set)
@@ -187,8 +187,8 @@ export async function fetchTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON)
   const timeout = setTimeout(() => controller.abort(), 10000)
   
   try {
-    const url = `${API_BASE}/schedule/${team.nhlAbbrev}/${season}`
-    console.log(`Fetching full season schedule for ${team.fullName} from Python backend:`, url)
+    const url = `${NHL_API_BASE}/club-schedule-season/${team.nhlAbbrev}/${season}`
+    console.log(`Fetching full season schedule for ${team.fullName} from:`, url)
     
     const response = await fetch(url, {
       signal: controller.signal,
@@ -322,13 +322,13 @@ const extractStandingsForTeam = (data: any, teamInfo: TeamInfo): StandingsInfo |
 }
 
 async function fetchStandings(teamInfo: TeamInfo): Promise<StandingsInfo> {
-  const dateEndpoint = `${API_BASE}/standings?date=${getCurrentStandingsDate()}`
-  const fallbackEndpoint = `${API_BASE}/standings`
+  const dateEndpoint = `${NHL_API_BASE}/standings/${getCurrentStandingsDate()}`
+  const fallbackEndpoint = `${NHL_API_BASE}/standings/now`
   const candidates = [dateEndpoint, fallbackEndpoint]
 
   for (const url of candidates) {
-    try:
-      console.log('Fetching standings data from Python backend:', url)
+    try {
+      console.log('Fetching standings data:', url)
       const response = await fetch(url, {
         headers: { 'Accept': 'application/json' }
       })
@@ -516,36 +516,37 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
   const timeout = setTimeout(() => controller.abort(), 15000)
   
   try {
-    // Fetch stats and other data from Python backend and PuckPedia
-    const statsUrl = `${API_BASE}/stats/${team.nhlAbbrev}/${season}`
-    console.log(`Fetching team stats from Python backend: ${statsUrl}`)
+    // Try multiple endpoints to get the most comprehensive stats
+    const endpoints = [
+      `${NHL_API_BASE}/club-stats/${team.nhlAbbrev}/${season}/2`,
+      `${NHL_API_BASE}/club-stats-season/${team.nhlAbbrev}/${season}`,
+      `${NHL_API_BASE}/roster/${team.nhlAbbrev}/${season}`,
+    ]
     
-    const [statsResponse, puckpediaInjuries, standings] = await Promise.allSettled([
-      fetch(statsUrl, {
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
-      }),
+    // Fetch NHL stats, PuckPedia injuries, and standings in parallel
+    const [nhelpResponses, puckpediaInjuries, standings] = await Promise.allSettled([
+      Promise.allSettled(
+        endpoints.map(endpoint => 
+          fetch(endpoint, {
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+          })
+        )
+      ),
       fetchPuckPediaInjuries(team),
       fetchStandings(team)
     ])
     
     clearTimeout(timeout)
     
-    let rosterData: any = null
     let data: any = null
+    let playerData: any = null
+    let rosterData: any = null
     let injuries: InjuredPlayer[] = []
     let standingsInfo: StandingsInfo = { conferencePosition: 0, isWildcard: false, divisionPosition: 0, wins: 0, losses: 0, otLosses: 0, points: 0 }
     
-    // Extract stats response
-    if (statsResponse.status === 'fulfilled' && statsResponse.value.ok) {
-      const statsData = await statsResponse.value.json()
-      rosterData = statsData.roster
-      data = statsData.stats
-      console.log(`${team.nhlAbbrev} stats data received from Python backend`)
-    } else {
-      console.error('Stats fetch failed from Python backend')
-      throw new Error('Failed to fetch team stats from Python backend')
-    }
+    // Extract NHL API responses
+    const responses = nhelpResponses.status === 'fulfilled' ? nhelpResponses.value : []
     
     // Extract injury data
     if (puckpediaInjuries.status === 'fulfilled') {
@@ -555,8 +556,6 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
       console.log('✗ PuckPedia injuries failed:', puckpediaInjuries.reason)
       injuries = [{ name: 'No current injuries reported', daysOut: 0 }]
     }
-    
-    // Extract standings data
     if (standings.status === 'fulfilled') {
       standingsInfo = standings.value
       console.log('✓ Standings loaded: position', standingsInfo.conferencePosition, 'wildcard:', standingsInfo.isWildcard)
@@ -564,10 +563,34 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
       console.log('✗ Standings failed:', standings.reason)
       standingsInfo = { conferencePosition: 0, isWildcard: false, divisionPosition: 0, wins: 0, losses: 0, otLosses: 0, points: 0 }
     }
+    if (responses[0]?.status === 'fulfilled' && responses[0].value.ok) {
+      data = await responses[0].value.json()
+      console.log(`${team.nhlAbbrev} club stats data received, skaters:`, data.skaters?.length || 0, 'goalies:', data.goalies?.length || 0)
+    }
     
-    // Use the data from Python backend
-    const skaters = (data?.skaters || []) as any[]
-    const goalies = (data?.goalies || []) as any[]
+    // Check second endpoint (club-stats-season)
+    if (responses[1]?.status === 'fulfilled' && responses[1].value.ok) {
+      playerData = await responses[1].value.json()
+      console.log(`${team.nhlAbbrev} season stats data received:`, Object.keys(playerData || {}))
+      console.log('Sample season data:', playerData?.skaters?.[0] || playerData?.players?.[0])
+    }
+    
+    // Check third endpoint (roster)
+    if (responses[2]?.status === 'fulfilled' && responses[2].value.ok) {
+      rosterData = await responses[2].value.json()
+      console.log('Roster data received:', Object.keys(rosterData || {}))
+      console.log('Sample roster data:', rosterData?.forwards?.[0] || rosterData?.defensemen?.[0] || rosterData?.goalies?.[0])
+    }
+    
+    // If we don't have any data, throw an error
+    if (!data && !playerData) {
+      console.error('All stats endpoints failed')
+      throw new Error('Failed to fetch team stats from all endpoints')
+    }
+    
+    // Use the more detailed data if available, otherwise fall back to basic stats
+    const skaters = (playerData?.skaters || playerData?.players || data?.skaters || []) as any[]
+    const goalies = (playerData?.goalies || data?.goalies || []) as any[]
     
     console.log('Final skater count:', skaters.length)
     console.log('Sample skater data:', skaters[0]) // Debug log
@@ -1015,8 +1038,8 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
   }
   
   try {
-    const url = `${API_BASE}/game/${gameId}`
-    console.log('Fetching game details from Python backend:', url)
+    const url = `${NHL_API_BASE}/gamecenter/${gameId}/boxscore`
+    console.log('Fetching game details from:', url)
     
     const response = await fetch(url, {
       headers: {
@@ -1044,11 +1067,28 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
       return !hasContent
     }
 
-    let summaryData = data.summary || data.landing?.summary
+    let summaryData = data.summary
 
     if (isSummaryEmpty(summaryData) && data.gameState !== 'FUT') {
-      // Landing data is already included from Python backend
-      console.log('Summary empty, landing data should be included in response')
+      try {
+        const landingUrl = `${NHL_API_BASE}/gamecenter/${gameId}/landing`
+        console.log('Summary empty, attempting fallback fetch from:', landingUrl)
+        const landingResponse = await fetch(landingUrl, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        })
+        if (landingResponse.ok) {
+          const landingJson = await landingResponse.json()
+          if (!isSummaryEmpty(landingJson?.summary)) {
+            summaryData = landingJson.summary
+          }
+        } else {
+          console.warn('Fallback landing fetch failed:', landingResponse.status, landingResponse.statusText)
+        }
+      } catch (landingError) {
+        console.warn('Error during landing fallback fetch:', landingError)
+      }
     }
     
     // Helper function to construct player name
@@ -1330,8 +1370,8 @@ export async function fetchPlayerCareerStats(playerId: number): Promise<CareerSt
   }
   
   try {
-    const url = `${API_BASE}/player/${playerId}/career`
-    console.log(`Fetching career stats for player ${playerId} from Python backend:`, url)
+    const url = `${NHL_API_BASE}/player/${playerId}/landing`
+    console.log(`Fetching career stats for player ${playerId} from:`, url)
     
     const response = await fetch(url, {
       headers: {
