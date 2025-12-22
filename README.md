@@ -2,20 +2,57 @@
 
 A comprehensive stats tracking application for the Vegas Golden Knights hockey team, providing real-time access to upcoming games, player statistics, and injury reports for the current season.
 
+## Architecture
+
+This application consists of two main components:
+
+1. **Frontend**: React + TypeScript + Vite single-page application
+2. **Backend**: Python FastAPI server using [nhl-api-py](https://github.com/coreyjs/nhl-api-py) library
+
+The backend provides a REST API that the frontend consumes to display NHL data.
+
 ## 🚀 Quick Start
-🚀 What's Inside?
-- A clean, minimal Spark environment
-- Pre-configured for local development
-- Ready to scale with your ideas
-- Comprehensive unit test suite with GitHub Actions CI
-  
-🧠 What Can You Do?
 
-### Development
+### Development Mode
 
+#### Option 1: Using Docker Compose (Recommended)
+
+```bash
+# Start both frontend and backend
+docker-compose -f docker-compose.dev.yml up
+
+# Access the application
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```
+
+#### Option 2: Running Locally
+
+**Backend:**
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
+```
+
+**Frontend:**
 ```bash
 npm install --legacy-peer-deps
 npm run dev
+```
+
+### Production Build
+
+```bash
+# Using Docker Compose
+docker-compose up -d
+
+# Or build separately
+docker build -t nhl-stats-backend ./backend
+docker build -t nhl-stats-frontend .
 ```
 ## Testing
 
@@ -40,6 +77,18 @@ The test suite includes:
 - **UI Component Tests**: Validates various UI elements and user interactions
 
 All tests run automatically on pull requests via GitHub Actions.
+
+## Backend API
+
+The Python backend (using [nhl-api-py](https://github.com/coreyjs/nhl-api-py)) provides the following endpoints:
+
+- `GET /api/schedule/{team_abbr}/{season}` - Team schedule
+- `GET /api/stats/{team_abbr}/{season}` - Team statistics  
+- `GET /api/standings` - League standings
+- `GET /api/game/{game_id}` - Game details
+- `GET /api/player/{player_id}/career` - Player career stats
+
+For detailed backend documentation, see [backend/README.md](backend/README.md).
 
 🧹 Just Exploring?
 No problem! If you were just checking things out and don’t need to keep this code:
