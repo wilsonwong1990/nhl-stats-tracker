@@ -108,7 +108,7 @@ If you just want to run the application without building from source, you can us
 
 ```bash
 # Pull and run the latest image
-docker run -d -p 3000:3000 --name nhl-stats-tracker ghcr.io/wilsonwong1990/nhl-stats-tracker:latest
+docker run -d -p 3000:80 --name nhl-stats-tracker ghcr.io/wilsonwong1990/nhl-stats-tracker:main
 
 # Or using Docker Compose with the pre-built image
 # Create a docker-compose.yml file:
