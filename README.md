@@ -2,6 +2,10 @@
 
 A stats tracking application for all NHL teams, providing real-time access to upcoming games, player statistics, and injury reports for the current season. Track all 32 teams with data from [NHL API based off the unofficial reference from Zmalski](https://github.com/Zmalski/NHL-API-Reference)
 
+
+<img width="1728" height="2897" alt="NHL Stats Tracker" src="https://github.com/user-attachments/assets/2928247c-5189-491d-9383-d804c69b9624" />
+
+
 ## 🎯 About This Project
 
 This application was originally created using [GitHub Spark](https://githubnext.com/projects/github-spark). What started as a Spark project focused on the Vegas Golden Knights has evolved into a hockey statistics dashboard that supports all 32 NHL teams and pulls live data from the NHL API.
