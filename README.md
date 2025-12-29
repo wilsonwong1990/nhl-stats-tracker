@@ -1,15 +1,11 @@
 # NHL Stats Tracker 🏒
 
-A comprehensive stats tracking application for all NHL teams, providing real-time access to upcoming games, player statistics, and injury reports for the current season. Track your favorite team with live data from the NHL API!
+A stats tracking application for all NHL teams, providing real-time access to upcoming games, player statistics, and injury reports for the current season. Track all 32 teams with data from [NHL API based off the unofficial reference from Zmalski](https://github.com/Zmalski/NHL-API-Reference)
 
 ## 🎯 About This Project
 
-This application was created using [GitHub Spark](https://githubnext.com/projects/github-spark), an AI-powered tool for rapidly building web applications. What started as a Spark project focused on the Vegas Golden Knights has evolved into a full-featured hockey statistics dashboard that supports all 32 NHL teams and pulls live data from the NHL API.
+This application was originally created using [GitHub Spark](https://githubnext.com/projects/github-spark). What started as a Spark project focused on the Vegas Golden Knights has evolved into a hockey statistics dashboard that supports all 32 NHL teams and pulls live data from the NHL API.
 
-### Experience Qualities
-- **Informative** - Presents complex hockey statistics in an easily digestible, organized manner
-- **Professional** - Reflects the quality and seriousness of professional hockey with a polished interface
-- **Dynamic** - Updates and navigates smoothly between game schedules while maintaining visual hierarchy
 
 ## ✨ Features
 
@@ -17,7 +13,9 @@ This application was created using [GitHub Spark](https://githubnext.com/project
 - Choose from all 32 NHL teams via an easy-to-use dropdown selector
 - Dynamic theme updates based on selected team's colors and branding
 - Remembers your team preference across sessions
-- Defaults to Vegas Golden Knights
+- Defaults to Vegas Golden Knights (GKG!)
+  - This can be edited in the `lib/teams.ts` by changing the `DEFAULT_TEAM_ID_FALLBACK` to your favorite team's 3 letter abbervation.
+
 
 ### 📅 Upcoming Games Schedule
 - Displays the next 10 upcoming games with opponent, home/away status, and PST start time
@@ -31,32 +29,29 @@ The app includes multiple stat leader boards showing top performers:
 - **Goal Leaders** - Top goal scorers
 - **Assist Leaders** - Top playmakers
 - **Plus/Minus Leaders** - Players with the best plus/minus ratings
-- **Average Shifts/Game** - Players with the most ice time by shift count
+- **Time on Ice/Game** - Players with the most ice time on average
 - **Goalie Save Percentage** - Goaltending performance
 
 All statistics are fetched live from the NHL API and cached for 24 hours.
 
 ### 🏆 Team Standings & Record
-- Current win-loss-OT loss record
+- Current win-loss-OT loss record or the record for the specific season
 - Total points in standings
 - Conference position with visual indicators
 - Wildcard status (if applicable)
 - Games remaining in the season
+- If the team is the Stanley Cup Champions for that particular year, a championship cup symbol will appear next to the team's name
 
 ### 👥 Full Team Roster
 - Complete roster organized by position (Forwards, Defense, Goalies)
 - Player names, positions, and jersey numbers
-- Captain and alternate captain badges
-- Easy-to-scan layout for quick reference
 
 ### 🏥 Injury Report
 - Direct link to external injury reports via PuckPedia
-- Real-time injury information from a trusted source
 
 ### 🎨 Dynamic Team Theming
 - Unique color schemes for all 32 NHL teams
 - Automatic theme switching when selecting a different team
-- Professional, data-focused design inspired by ESPN and NHL.com
 - Responsive layout for desktop and mobile devices
 
 ## 🛠️ Tech Stack
