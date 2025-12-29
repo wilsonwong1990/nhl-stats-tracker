@@ -15,21 +15,17 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage
-# This stage only contains the built files and the serve package
-# All build dependencies are left behind in the builder stage
-FROM node:20-alpine
+# Production stage (nginx)
+FROM nginx:alpine
 
-WORKDIR /app
+# Copy custom nginx configuration (includes API proxies)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Install serve to run the static files
-RUN npm install -g serve
+# Copy built files from builder stage into nginx web root
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy built files from builder stage
-COPY --from=builder /app/dist ./dist
+# Expose HTTP port
+EXPOSE 80
 
-# Expose port
-EXPOSE 3000
-
-# Run the application
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Run nginx in the foreground
+CMD ["nginx", "-g", "daemon off;"]
