@@ -108,7 +108,7 @@ If you just want to run the application without building from source, you can us
 
 ```bash
 # Pull and run the latest image
-docker run -d -p 3000:80 --name nhl-stats-tracker ghcr.io/wilsonwong1990/nhl-stats-tracker:latest
+docker run -d -p 3000:3000 --name nhl-stats-tracker ghcr.io/wilsonwong1990/nhl-stats-tracker:latest
 
 # Or using Docker Compose with the pre-built image
 # Create a docker-compose.yml file:
@@ -227,7 +227,7 @@ docker build -t nhl-stats-tracker .
 
 2. Run the container:
 ```bash
-docker run -d -p 3000:80 --name nhl-stats-tracker nhl-stats-tracker
+docker run -d -p 3000:3000 --name nhl-stats-tracker nhl-stats-tracker
 ```
 
 3. Open your browser and navigate to `http://localhost:3000`
