@@ -1,45 +1,10 @@
-# Vegas Golden Knights Stats Tracker
+# NHL Stats Tracker 🏒
 
-A comprehensive stats tracking application for the Vegas Golden Knights hockey team, providing real-time access to upcoming games, player statistics, and injury reports for the current season.
+A stats tracking application for all NHL teams, providing real-time access to upcoming games, player statistics, and injury reports for the current season. Track all 32 teams with data from [NHL API based off the unofficial reference from Zmalski](https://github.com/Zmalski/NHL-API-Reference)
 
-## 🚀 Quick Start
-🚀 What's Inside?
-- A clean, minimal Spark environment
-- Pre-configured for local development
-- Ready to scale with your ideas
-- Comprehensive unit test suite with GitHub Actions CI
-  
-🧠 What Can You Do?
+## 🎯 About This Project
 
-### Development
-
-```bash
-npm install --legacy-peer-deps
-npm run dev
-```
-## Testing
-
-This project includes a comprehensive test suite to ensure code quality:
-
-```bash
-# Run all tests
-npm run test
-
-# Run tests in watch mode
-npm run test:watch
-```
-
-### Test Coverage
-
-The test suite includes:
-- **Page Rendering Tests**: Verifies that the application renders correctly and is not blank
-- **Jack Eichel Stats Test**: Validates player statistics from the October 14, 2025 game
-- **Stanley Cup Champions Test**: Confirms Vegas Golden Knights 2022-2023 championship (16 playoff wins)
-- **Team Existence Tests**: Verifies Arizona Coyotes cessation after 2023-2024 season
-- **Data Loading Tests**: Tests team data, stat leaders, roster display, and game information
-- **UI Component Tests**: Validates various UI elements and user interactions
-
-All tests run automatically on pull requests via GitHub Actions.
+This application was originally created using [GitHub Spark](https://githubnext.com/projects/github-spark). What started as a Spark project focused on the Vegas Golden Knights has evolved into a hockey statistics dashboard that supports all 32 NHL teams and pulls live data from the NHL API.
 
 
 ## ✨ Features
