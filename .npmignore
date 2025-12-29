@@ -1,0 +1,49 @@
+# Source files
+src/
+
+# Config files
+.github/
+.devcontainer/
+*.config.js
+*.config.ts
+tsconfig.json
+vitest.config.ts
+vite.config.ts
+tailwind.config.js
+
+# Documentation
+PRD.md
+SECURITY.md
+
+# Development files
+.gitignore
+.dockerignore
+.eslintrc*
+.prettierrc
+.editorconfig
+
+# Build artifacts
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# Spark specific
+.spark-initial-sha
+.spark-workbench-id
+spark.meta.json
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+test/
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Environment
+.env
+.env.*

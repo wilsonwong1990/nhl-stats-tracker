@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, Fragment } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatLeaderCard } from '@/components/StatLeaderCard'
+import { PlayerModal } from '@/components/PlayerModal'
+import { GameModal } from '@/components/GameModal'
 import { 
   Activity,
   CaretLeft, 
@@ -39,10 +41,12 @@ import {
   CheckCircle,
   XCircle,
   Circle,
-  LinkSimple
+  LinkSimple,
+  Trophy
 } from '@phosphor-icons/react'
-import { fetchAllTeamData, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo } from '@/lib/nhl-api'
+import { fetchAllTeamData, fetchGameDetails, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, type GameDetails, DEFAULT_SEASON } from '@/lib/nhl-api'
 import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
+import { getAvailableSeasons, getCurrentSeason, formatSeasonDisplay } from '@/lib/seasons'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
@@ -55,10 +59,32 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000
 
 function App() {
   const teams = useMemo(() => listTeams(), [])
+  const availableSeasons = useMemo(() => getAvailableSeasons(25), [])
   const [selectedTeamId, setSelectedTeamId] = useKV<TeamId>('selected-team', DEFAULT_TEAM_ID)
+  const [selectedSeason, setSelectedSeason] = useKV<string>('selected-season', DEFAULT_SEASON)
   const team = useMemo(() => getTeamInfo(selectedTeamId), [selectedTeamId])
-  const [currentPage, setCurrentPage] = useKV<number>(`schedule-page-${team.id}`, 0)
-  const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>(`team-data-${team.id}`, null)
+  
+  // Check if team existed in selected season
+  const teamExistedInSeason = useMemo(() => {
+    const seasonStartYear = parseInt(selectedSeason.substring(0, 4))
+    const teamInceptionYear = team.inceptionYear
+    const teamCessationYear = team.cessationYear
+    
+    // Team must have started by this season
+    if (seasonStartYear < teamInceptionYear) {
+      return false
+    }
+    
+    // If team has a cessation year, it must not have ended before this season
+    if (teamCessationYear && seasonStartYear > teamCessationYear) {
+      return false
+    }
+    
+    return true
+  }, [selectedSeason, team])
+  
+  const [currentPage, setCurrentPage] = useKV<number>(`schedule-page-${team.id}-${selectedSeason}`, 0)
+  const [cachedTeamData, setCachedTeamData] = useKV<CachedData | null>(`team-data-${team.id}-${selectedSeason}`, null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -72,10 +98,47 @@ function App() {
   const [injuries, setInjuries] = useState<InjuredPlayer[]>([])
   const [roster, setRoster] = useState<RosterPlayer[]>([])
   const [standings, setStandings] = useState<StandingsInfo>({ conferencePosition: 0, isWildcard: false })
+  const [gameDetailsCache, setGameDetailsCache] = useState<Record<string, GameDetails>>({})
+  const [gameDetailsLoading, setGameDetailsLoading] = useState<Record<string, boolean>>({})
+  const gameDetailsCacheRef = useRef(gameDetailsCache)
+  const gameDetailsLoadingRef = useRef(gameDetailsLoading)
+
+  useEffect(() => {
+    gameDetailsCacheRef.current = gameDetailsCache
+  }, [gameDetailsCache])
+
+  useEffect(() => {
+    gameDetailsLoadingRef.current = gameDetailsLoading
+  }, [gameDetailsLoading])
+
+  // Player modal state
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | RosterPlayer | null>(null)
+  const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false)
+
+  // Game modal state
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [isGameModalOpen, setIsGameModalOpen] = useState(false)
 
   const loadData = async (forceRefresh = false) => {
     setIsLoading(true)
     setError(null)
+
+    // If team didn't exist in this season, clear data and don't fetch
+    if (!teamExistedInSeason) {
+      console.log(`${team.fullName} did not exist in ${selectedSeason}`)
+      setGames([])
+      setPointLeaders([])
+      setGoalLeaders([])
+      setAssistLeaders([])
+      setPlusMinusLeaders([])
+      setAvgShiftsLeaders([])
+      setGoalieStats([])
+      setInjuries([])
+      setRoster([])
+      setStandings({ conferencePosition: 0, isWildcard: false })
+      setIsLoading(false)
+      return
+    }
 
     const now = Date.now()
     const cached = cachedTeamData
@@ -97,8 +160,8 @@ function App() {
     }
 
     try {
-      console.log(`Fetching fresh data from NHL API for ${team.nhlAbbrev}...`)
-      const data = await fetchAllTeamData(team)
+      console.log(`Fetching fresh data from NHL API for ${team.nhlAbbrev} season ${selectedSeason}...`)
+      const data = await fetchAllTeamData(team, selectedSeason)
       
       console.log('Data loaded successfully:', data)
       setGames(data.games)
@@ -158,9 +221,11 @@ function App() {
 
   useEffect(() => {
     setCurrentPage(0)
+    setGameDetailsCache({})
+    setGameDetailsLoading({})
     loadData(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team.id])
+  }, [team.id, selectedSeason])
 
   // Set page to show upcoming games when data loads
   useEffect(() => {
@@ -187,6 +252,47 @@ function App() {
   const startIndex = page * 10
   const currentGames = games.slice(startIndex, startIndex + 10)
 
+  useEffect(() => {
+    if (currentGames.length === 0) return
+
+    let cancelled = false
+
+    const fetchDetailsForVisibleGames = async () => {
+      const completedVisibleGames = currentGames.filter(isGameCompleted)
+      if (completedVisibleGames.length === 0) return
+
+      for (const game of completedVisibleGames) {
+        const id = game.id
+        if (gameDetailsCacheRef.current[id] || gameDetailsLoadingRef.current[id]) continue
+
+        setGameDetailsLoading(prev => ({ ...prev, [id]: true }))
+
+        try {
+          const details = await fetchGameDetails(id)
+          if (!cancelled && details) {
+            setGameDetailsCache(prev => ({ ...prev, [id]: details }))
+          }
+        } catch (detailError) {
+          console.error(`Failed to fetch game details for ${id}:`, detailError)
+        } finally {
+          if (!cancelled) {
+            setGameDetailsLoading(prev => {
+              const next = { ...prev }
+              delete next[id]
+              return next
+            })
+          }
+        }
+      }
+    }
+
+    fetchDetailsForVisibleGames()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentGames])
+
   // Helper function to determine if the selected team won the game
   const isSelectedTeamWin = (game: Game): boolean => {
     if (game.homeScore === undefined || game.awayScore === undefined || game.gameState === 'FUT') return false
@@ -208,6 +314,28 @@ function App() {
   // Helper function to check if game is completed
   const isGameCompleted = (game: Game): boolean => {
     return game.gameState !== 'FUT' && game.gameState !== 'LIVE' && (game.homeScore !== undefined && game.awayScore !== undefined)
+  }
+
+  const parseTimeToSeconds = (value?: string) => {
+    if (!value) return 0
+    const segments = value.split(':').map((segment) => Number(segment))
+    if (segments.some((segment) => Number.isNaN(segment))) {
+      return 0
+    }
+    if (segments.length === 3) {
+      const [hours, minutes, seconds] = segments
+      return (hours * 3600) + (minutes * 60) + seconds
+    }
+    if (segments.length === 2) {
+      const [minutes, seconds] = segments
+      return (minutes * 60) + seconds
+    }
+    return segments[0] ?? 0
+  }
+
+  const goalieHasMeaningfulMinutes = (goalie: NonNullable<GameDetails['goaltenders']>[number]) => {
+    const seconds = parseTimeToSeconds(goalie.timeOnIce)
+    return seconds > 0 || (goalie.shotsAgainst ?? 0) > 0 || (goalie.goalsAgainst ?? 0) > 0
   }
 
   const handlePrevPage = () => {
@@ -256,13 +384,29 @@ function App() {
     }
   };
 
-  // Compute record (wins-losses) from completed games
-  const completedGames = games.filter(isGameCompleted)
-  const derivedWins = completedGames.filter(isSelectedTeamWin).length
-  const derivedLosses = completedGames.length - derivedWins
-  const derivedOTLosses = completedGames.filter(game => !isSelectedTeamWin(game) && isOvertimeDecision(game)).length
-  const derivedRegulationLosses = Math.max(0, derivedLosses - derivedOTLosses)
-  const gamesRemaining = games.filter(game => !isGameCompleted(game) && game.gameState !== 'LIVE').length
+  // Separate regular season and playoff games
+  // Regular season is gameType 2, or undefined (for backwards compatibility with older data)
+  const regularSeasonGames = games.filter(game => game.gameType === 2 || game.gameType === undefined)
+  const playoffGames = games.filter(game => game.gameType === 3)
+  
+  // Compute regular season record from completed regular season games only
+  const completedRegularSeasonGames = regularSeasonGames.filter(isGameCompleted)
+  const derivedRegularSeasonWins = completedRegularSeasonGames.filter(isSelectedTeamWin).length
+  const derivedRegularSeasonLosses = completedRegularSeasonGames.length - derivedRegularSeasonWins
+  const derivedRegularSeasonOTLosses = completedRegularSeasonGames.filter(game => !isSelectedTeamWin(game) && isOvertimeDecision(game)).length
+  const derivedRegularSeasonRegulationLosses = Math.max(0, derivedRegularSeasonLosses - derivedRegularSeasonOTLosses)
+  
+  // Compute playoff record from completed playoff games
+  const completedPlayoffGames = playoffGames.filter(isGameCompleted)
+  const playoffWins = completedPlayoffGames.filter(isSelectedTeamWin).length
+  const playoffLosses = completedPlayoffGames.length - playoffWins
+  
+  // Check if this team won the Stanley Cup this season (16 playoff wins)
+  const wonStanleyCup = playoffWins === 16
+  
+  const gamesRemaining = regularSeasonGames.filter(game => !isGameCompleted(game) && game.gameState !== 'LIVE').length
+  
+  // Use official standings for regular season record (standings are regular season only)
   const standingsWins = typeof standings.wins === 'number' ? standings.wins : undefined
   const standingsLosses = typeof standings.losses === 'number' ? standings.losses : undefined
   const standingsOTLosses = typeof standings.otLosses === 'number' ? standings.otLosses : undefined
@@ -272,14 +416,18 @@ function App() {
     standingsOTLosses !== undefined &&
     (standingsWins + standingsLosses + standingsOTLosses) > 0
 
-  // Prefer official standings record if available and non-empty, otherwise derive from schedule
-  const wins = hasStandingsRecord ? standingsWins! : derivedWins
-  const losses = hasStandingsRecord ? standingsLosses! : derivedRegulationLosses
-  const otLosses = hasStandingsRecord ? standingsOTLosses! : derivedOTLosses
-  // Always show three-part record per request (wins-losses-OT losses)
-  const record = `${wins}-${losses}-${otLosses}`
+  // Prefer official standings record if available and non-empty, otherwise derive from regular season schedule
+  const wins = hasStandingsRecord ? standingsWins! : derivedRegularSeasonWins
+  const losses = hasStandingsRecord ? standingsLosses! : derivedRegularSeasonRegulationLosses
+  const otLosses = hasStandingsRecord ? standingsOTLosses! : derivedRegularSeasonOTLosses
+  // Regular season record (three-part format)
+  const regularSeasonRecord = `${wins}-${losses}-${otLosses}`
+  
+  // Playoff record (if any playoff games exist)
+  const playoffRecord = completedPlayoffGames.length > 0 ? `${playoffWins}-${playoffLosses}` : null
 
   const hasOfficialPoints = typeof standings.points === 'number' && standings.points > 0
+  // Points are regular season only
   const points = hasOfficialPoints
     ? standings.points!
     : (wins * 2) + otLosses
@@ -294,13 +442,52 @@ function App() {
   const injurySlug = team.puckpediaSlug ?? team.fullName.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/(^-|-$)/g, '')
   const injuryUrl = `https://puckpedia.com/team/${injurySlug}/injuries`
 
+  const handlePlayerClick = (player: PlayerStat | RosterPlayer) => {
+    setSelectedPlayer(player)
+    setIsPlayerModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsPlayerModalOpen(false)
+    setSelectedPlayer(null)
+  }
+
+  const handleGameClick = (game: Game) => {
+    setSelectedGameId(game.id)
+    setIsGameModalOpen(true)
+  }
+
+  const handleCloseGameModal = () => {
+    setIsGameModalOpen(false)
+    setSelectedGameId(null)
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="text-center space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight text-center">
-            2024-2025 NHL Season Stats Tracker
-          </h1>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight text-center">
+              NHL Season Stats Tracker
+            </h1>
+            <Select
+              value={selectedSeason}
+              onValueChange={(value) => {
+                setSelectedSeason(value)
+              }}
+            >
+              <SelectTrigger className="w-[160px] bg-card border-border">
+                <SelectValue placeholder="Select season" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                {availableSeasons.map((season) => (
+                  <SelectItem key={season.id} value={season.id}>
+                    {season.displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Select
             value={team.id}
             onValueChange={(value) => {
@@ -309,8 +496,11 @@ function App() {
             }}
           >
             <SelectTrigger className="w-full max-w-xl mx-auto bg-transparent border-none shadow-none p-0 focus:ring-0 focus:outline-none focus-visible:ring-0 data-[placeholder]:text-center">
-              <h2 className="text-2xl md:text-3xl font-semibold text-accent tracking-tight text-center w-full">
-                <SelectValue placeholder="Select a team" className="block w-full text-center" />
+              <h2 className="flex w-full items-center justify-center gap-2 text-2xl md:text-3xl font-semibold text-accent tracking-tight text-center">
+                <SelectValue placeholder="Select a team" className="text-center" />
+                {wonStanleyCup && (
+                  <Trophy className="text-yellow-400" size={24} weight="fill" title="Stanley Cup Champion" />
+                )}
               </h2>
             </SelectTrigger>
             <SelectContent className="max-h-[320px]">
@@ -327,9 +517,12 @@ function App() {
               Mock data active – live NHL stats disabled
             </div>
           )}
-          {(completedGames.length > 0 || wins > 0) && (
+          {(completedRegularSeasonGames.length > 0 || wins > 0) && (
             <div className="text-sm text-muted-foreground flex flex-col items-center gap-1">
-              <span>Record: {record}</span>
+              <span>Regular Season: {regularSeasonRecord}</span>
+              {playoffRecord && (
+                <span>Playoffs: {playoffRecord}</span>
+              )}
               {typeof points === 'number' && (
                 <span>Points: {points}</span>
               )}
@@ -362,6 +555,18 @@ function App() {
 
         <Separator className="bg-border" />
 
+        {!teamExistedInSeason ? (
+          <div className="text-center py-12 space-y-4">
+            <div className="text-muted-foreground text-lg">
+              {team.fullName} did not exist during the {formatSeasonDisplay(selectedSeason)} season
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {team.fullName} started in the {team.inceptionYear}-{team.inceptionYear + 1} season
+              {team.cessationYear && ` and played until the ${team.cessationYear}-${team.cessationYear + 1} season`}
+            </div>
+          </div>
+        ) : (
+          <>
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Timer className="text-accent" size={24} weight="bold" />
@@ -395,47 +600,213 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentGames.map((game, index) => (
-                          <tr 
-                            key={game.id} 
-                            className={index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'}
-                          >
-                            <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
-                            <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
-                            <td className="px-4 py-3 text-sm">{game.opponent}</td>
-                            <td className="px-4 py-3">
-                              <Badge 
-                                variant={game.isHome ? 'default' : 'secondary'}
-                                className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+                        {currentGames.map((game, index) => {
+                          const details = gameDetailsCache[game.id]
+                          const isCompleted = isGameCompleted(game)
+
+                          return (
+                            <Fragment key={game.id}>
+                              <tr 
+                                className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} cursor-pointer hover:bg-accent/10 transition-colors`}
+                                onClick={() => handleGameClick(game)}
                               >
-                                {game.isHome ? 'Home' : 'Away'}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-3 text-sm font-medium tabular-nums">
-                              {(game.gameState === 'LIVE' || isGameCompleted(game)) && game.homeScore !== undefined && game.awayScore !== undefined ? (
-                                game.isHome 
-                                  ? `${game.homeScore} - ${game.awayScore}`
-                                  : `${game.awayScore} - ${game.homeScore}`
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
+                                <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
+                                <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
+                                <td className="px-4 py-3 text-sm">{game.opponent}</td>
+                                <td className="px-4 py-3">
+                                  <Badge 
+                                    variant={game.isHome ? 'default' : 'secondary'}
+                                    className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+                                  >
+                                    {game.isHome ? 'Home' : 'Away'}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 py-3 text-sm font-medium tabular-nums">
+                                  {(game.gameState === 'LIVE' || isCompleted) && game.homeScore !== undefined && game.awayScore !== undefined ? (
+                                    game.isHome 
+                                      ? `${game.homeScore} - ${game.awayScore}`
+                                      : `${game.awayScore} - ${game.homeScore}`
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {game.gameState === 'LIVE' ? (
+                                    <div className="flex items-center gap-1">
+                                      <Circle className="text-red-500 animate-pulse" size={12} weight="fill" />
+                                      <span className="text-xs text-red-500 font-medium">LIVE</span>
+                                    </div>
+                                  ) : isCompleted ? (
+                                    isSelectedTeamWin(game) ? (
+                                      <CheckCircle className="text-green-500" size={20} weight="fill" />
+                                    ) : (
+                                      <XCircle className="text-red-500" size={20} weight="fill" />
+                                    )
+                                  ) : null}
+                                </td>
+                              </tr>
+                              {isCompleted && (
+                                <tr className={`${index % 2 === 0 ? 'bg-card/30' : 'bg-card/20'} text-xs`}> 
+                                  <td colSpan={6} className="px-4 pb-4 pt-0">
+                                    {details ? (() => {
+                                      const hasGoalScorers = Array.isArray(details.goalScorers) && details.goalScorers.length > 0
+                                      const hasGoalies = Array.isArray(details.goaltenders) && details.goaltenders.length > 0
+                                      const hasThreeStars = Array.isArray(details.threeStars) && details.threeStars.length > 0
+
+                                      if (!hasGoalScorers && !hasGoalies && !hasThreeStars) {
+                                        return <p className="mt-2 text-muted-foreground">Detailed game data unavailable for this matchup.</p>
+                                      }
+
+                                      return (
+                                        <div className="mt-2 space-y-4">
+                                          {hasThreeStars && (
+                                            <div className="space-y-2">
+                                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                                <Star className="text-accent" size={16} weight="fill" />
+                                                <span>Three Stars</span>
+                                              </div>
+                                              <div className="grid gap-2 sm:grid-cols-3">
+                                                {details.threeStars!.map((star, starIndex) => (
+                                                  <div
+                                                    key={`${details.id}-star-${starIndex}`}
+                                                    className="flex items-center justify-between rounded-md border border-border bg-card/40 px-3 py-2"
+                                                  >
+                                                    <div className="flex items-center gap-2">
+                                                      <Badge variant="default" className="bg-accent text-accent-foreground text-[10px] uppercase">
+                                                        ⭐ {starIndex + 1}
+                                                      </Badge>
+                                                      <span className="text-sm font-medium">{star.name}</span>
+                                                    </div>
+                                                    {star.position && (
+                                                      <Badge variant="outline" className="text-[10px] uppercase">
+                                                        {star.position}
+                                                      </Badge>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {hasGoalScorers && (
+                                            <div className="space-y-2">
+                                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                                <Target className="text-accent" size={16} weight="bold" />
+                                                <span>Goal Scorers</span>
+                                              </div>
+                                              <div className="grid gap-4 md:grid-cols-2">
+                                                {[details.awayTeam, details.homeTeam].map((teamInfo) => {
+                                                  const teamGoals = (details.goalScorers ?? []).filter((goal) => goal.team === teamInfo.abbrev)
+                                                  return (
+                                                    <div key={`${details.id}-goals-${teamInfo.abbrev}`} className="space-y-2">
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-semibold text-foreground">{teamInfo.name}</span>
+                                                        <Badge variant="outline" className="text-[10px] uppercase">
+                                                          {teamGoals.length} {teamGoals.length === 1 ? 'Goal' : 'Goals'}
+                                                        </Badge>
+                                                      </div>
+                                                      {teamGoals.length > 0 ? (
+                                                        <ul className="space-y-1 text-muted-foreground">
+                                                          {teamGoals.map((goal, idx) => (
+                                                            <li key={`${teamInfo.abbrev}-${idx}`}>
+                                                              <span className="font-medium text-foreground">{goal.name}</span>
+                                                              {goal.period ? ` · P${goal.period}` : ''}
+                                                              {goal.timeInPeriod ? ` at ${goal.timeInPeriod}` : ''}
+                                                            </li>
+                                                          ))}
+                                                        </ul>
+                                                      ) : (
+                                                        <p className="italic text-muted-foreground">No goals recorded</p>
+                                                      )}
+                                                    </div>
+                                                  )
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {hasGoalies && (
+                                            <div className="space-y-2">
+                                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                                <Shield className="text-accent" size={16} weight="bold" />
+                                                <span>Goaltenders</span>
+                                              </div>
+                                              <div className="grid gap-4 md:grid-cols-2">
+                                                {[details.awayTeam, details.homeTeam].map((teamInfo) => {
+                                                  const teamGoalies = (details.goaltenders ?? []).filter((goalie) => goalie.team === teamInfo.abbrev)
+                                                  const activeGoalies = teamGoalies.filter(goalieHasMeaningfulMinutes)
+
+                                                  if (activeGoalies.length === 0) {
+                                                    return (
+                                                      <div key={`${details.id}-goalies-${teamInfo.abbrev}`} className="space-y-2">
+                                                        <div className="text-sm font-semibold text-foreground">{teamInfo.name}</div>
+                                                        <p className="text-xs text-muted-foreground italic">No goalie stats available.</p>
+                                                      </div>
+                                                    )
+                                                  }
+
+                                                  const swapped = activeGoalies.length > 1
+
+                                                  return (
+                                                    <div key={`${details.id}-goalies-${teamInfo.abbrev}`} className="space-y-2">
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-semibold text-foreground">{teamInfo.name}</span>
+                                                        {swapped && (
+                                                          <Badge variant="outline" className="text-[10px] uppercase border-amber-500 text-amber-400">
+                                                            Goalie Swap
+                                                          </Badge>
+                                                        )}
+                                                      </div>
+                                                      <div className="space-y-2">
+                                                        {activeGoalies.map((goalie) => (
+                                                          <div
+                                                            key={`${teamInfo.abbrev}-${goalie.name}`}
+                                                            className="rounded-lg border border-border bg-card/40 p-3 space-y-2"
+                                                          >
+                                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                              <span className="text-sm font-medium text-foreground">{goalie.name}</span>
+                                                              <div className="flex items-center gap-1">
+                                                                {goalie.isStarter && (
+                                                                  <Badge variant="outline" className="text-[10px] uppercase">Starter</Badge>
+                                                                )}
+                                                                {goalie.isStarter === false && (
+                                                                  <Badge variant="secondary" className="text-[10px] uppercase">Relief</Badge>
+                                                                )}
+                                                                {goalie.decision && (
+                                                                  <Badge variant="default" className="text-[10px] uppercase">
+                                                                    {goalie.decision.toUpperCase()}
+                                                                  </Badge>
+                                                                )}
+                                                              </div>
+                                                            </div>
+                                                            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                                                              <span>TOI: {goalie.timeOnIce ?? '—'}</span>
+                                                              <span>Saves: {goalie.saves ?? 0} / {goalie.shotsAgainst ?? 0} SA</span>
+                                                            </div>
+                                                            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                                                              <span>GA: {goalie.goalsAgainst ?? 0}</span>
+                                                              {typeof goalie.savePctg === 'number' && (
+                                                                <span>SV%: {(goalie.savePctg).toFixed(3)}</span>
+                                                              )}
+                                                            </div>
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    </div>
+                                                  )
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })() : null}
+                                  </td>
+                                </tr>
                               )}
-                            </td>
-                            <td className="px-4 py-3">
-                              {game.gameState === 'LIVE' ? (
-                                <div className="flex items-center gap-1">
-                                  <Circle className="text-red-500 animate-pulse" size={12} weight="fill" />
-                                  <span className="text-xs text-red-500 font-medium">LIVE</span>
-                                </div>
-                              ) : isGameCompleted(game) ? (
-                                isSelectedTeamWin(game) ? (
-                                  <CheckCircle className="text-green-500" size={20} weight="fill" />
-                                ) : (
-                                  <XCircle className="text-red-500" size={20} weight="fill" />
-                                )
-                              ) : null}
-                            </td>
-                          </tr>
-                        ))}
+                            </Fragment>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -484,18 +855,21 @@ function App() {
               icon={<TrendUp className="text-accent" size={20} weight="bold" />}
               leaders={pointLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
             <StatLeaderCard
               title="Goal Leaders"
               icon={<Target className="text-accent" size={20} weight="bold" />}
               leaders={goalLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
             <StatLeaderCard
               title="Assist Leaders"
               icon={<HandsClapping className="text-accent" size={20} weight="bold" />}
               leaders={assistLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
           </div>
         </section>
@@ -507,12 +881,14 @@ function App() {
               icon={<Plus className="text-accent" size={20} weight="bold" />}
               leaders={plusMinusLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
             <StatLeaderCard
-              title="Avg Shifts/Game"
+              title="Avg Time on Ice"
               icon={<Lightning className="text-accent" size={20} weight="bold" />}
               leaders={avgShiftsLeaders}
               isLoading={isLoading}
+              onPlayerClick={handlePlayerClick}
             />
             <StatLeaderCard
               title="Goalie Save %"
@@ -520,6 +896,7 @@ function App() {
               leaders={goalieStats}
               isLoading={isLoading}
               formatValue={(value) => `${(value * 100).toFixed(1)}%`}
+              onPlayerClick={handlePlayerClick}
             />
           </div>
         </section>
@@ -557,7 +934,11 @@ function App() {
                       <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">{title}</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {players.map(player => (
-                          <div key={`${player.name}-${player.number}`} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors">
+                          <div 
+                            key={`${player.name}-${player.number}`} 
+                            className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors cursor-pointer"
+                            onClick={() => handlePlayerClick(player)}
+                          >
                             <div className="flex items-center gap-2">
                               <div>
                                 <div className="text-sm font-medium">{player.name}</div>
@@ -617,7 +998,21 @@ function App() {
             </CardContent>
           </Card>
         </section>
+          </>
+        )}
       </div>
+
+      <PlayerModal 
+        isOpen={isPlayerModalOpen}
+        onClose={handleCloseModal}
+        player={selectedPlayer}
+      />
+
+      <GameModal 
+        isOpen={isGameModalOpen}
+        onClose={handleCloseGameModal}
+        gameId={selectedGameId}
+      />
     </div>
   );
 }

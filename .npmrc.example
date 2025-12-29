@@ -1,0 +1,14 @@
+# Example .npmrc configuration for installing packages from GitHub Packages
+# 
+# To install @wilsonwong1990/vegas-golden-kn-iron from GitHub Packages:
+# 1. Copy this file to ~/.npmrc or to your project root as .npmrc
+# 2. Replace YOUR_GITHUB_TOKEN with a GitHub Personal Access Token
+#    with read:packages scope
+#
+# To create a token:
+# 1. Go to GitHub Settings > Developer settings > Personal access tokens
+# 2. Generate new token with 'read:packages' scope
+# 3. Replace YOUR_GITHUB_TOKEN below
+
+@wilsonwong1990:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
