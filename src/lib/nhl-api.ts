@@ -1,4 +1,5 @@
 import { getCurrentSeason } from './seasons'
+import { getGameDateInPST, formatGameTime } from './date-utils'
 
 const NHL_API_BASE = '/nhl-api/v1'
 // Default to current season based on current date
@@ -158,28 +159,6 @@ export interface TeamStats {
   standings: StandingsInfo
 }
 
-function convertToPST(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleTimeString('en-US', {
-    timeZone: 'America/Los_Angeles',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  })
-}
-
-function getGameDateInPST(dateString: string): string {
-  // Convert the full UTC datetime to PST and extract just the date
-  const date = new Date(dateString)
-  const pstDate = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Los_Angeles',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date)
-  return pstDate // Returns YYYY-MM-DD format
-}
-
 // Mock data moved to separate file: mock-data.ts
 
 export async function fetchTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON): Promise<Game[]> {
@@ -258,7 +237,7 @@ export async function fetchTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON)
           id: game.id.toString(),
           opponent: opponent,
           date: getGameDateInPST(game.startTimeUTC), // Convert UTC start time to PST date
-          time: convertToPST(game.startTimeUTC),
+          time: formatGameTime(game.startTimeUTC),
           isHome,
           homeScore: homeScore,
           awayScore: awayScore,
