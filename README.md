@@ -1,6 +1,6 @@
 # NHL Stats Tracker 🏒
 
-A stats tracking application for all NHL teams, providing real-time access to upcoming games, player statistics, and injury reports for the current season. Track all 32 teams with data from the [NHL API based off the unofficial reference from Zmalski](https://github.com/Zmalski/NHL-API-Reference).
+A stats tracking application for all NHL teams, providing real-time access to upcoming games, player statistics, and injury reports for the current season. Track all 32 teams with data from the [NHL API (based on the unofficial reference from Zmalski)](https://github.com/Zmalski/NHL-API-Reference).
 
 <img width="1728" height="2897" alt="NHL Stats Tracker" src="https://github.com/user-attachments/assets/2928247c-5189-491d-9383-d804c69b9624" />
 
