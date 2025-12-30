@@ -15,7 +15,6 @@ This application was originally created using [GitHub Spark](https://githubnext.
 - **Origin**: Built with [GitHub Spark](https://githubnext.com/projects/github-spark), an AI-powered tool for rapid web application prototyping
 - **Initial Spark commit SHA**: `130d713a0092f5dfca3b7dd39bd6b69c0492e654`
 - **Evolution**: Expanded from a single-team tracker to a full 32-team NHL statistics dashboard
-- **Current Status**: Active development with regular updates and improvements
 
 
 ## ✨ Features
@@ -54,6 +53,7 @@ All statistics are fetched live from the NHL API and cached for 24 hours.
 ### 👥 Full Team Roster
 - Complete roster organized by position (Forwards, Defense, Goalies)
 - Player names, positions, and jersey numbers
+- Player stats modal when a player is clicked on. Includes selected season stats and career stats.
 
 ### 🏥 Injury Report
 - Direct link to external injury reports via PuckPedia
