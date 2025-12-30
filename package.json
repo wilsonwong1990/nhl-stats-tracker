@@ -2,7 +2,7 @@
     "name": "@wilsonwong1990/nhl-stats-tracker",
     "version": "1.0.0",
     "type": "module",
-    "description": "Vegas Golden Knights Stats Tracker - A comprehensive stats tracking application for the Vegas Golden Knights hockey team",
+    "description": "NHL Stats Tracker - A stats tracking application for the NHL",
     "author": "wilsonwong1990",
     "license": "MIT",
     "repository": {
