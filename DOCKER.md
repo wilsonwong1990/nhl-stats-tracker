@@ -11,7 +11,7 @@ docker pull ghcr.io/wilsonwong1990/nhl-stats-tracker:main
 ## Run the Docker Container
 
 ```bash
-docker run -p 3000:3000 ghcr.io/wilsonwong1990/nhl-stats-tracker:main
+docker run -p 3000:80 ghcr.io/wilsonwong1990/nhl-stats-tracker:main
 ```
 
 Then access the application at http://localhost:3000
@@ -25,7 +25,7 @@ docker build -t nhl-stats-tracker .
 ## Run the Locally Built Image
 
 ```bash
-docker run -p 3000:3000 nhl-stats-tracker
+docker run -p 3000:80 nhl-stats-tracker
 ```
 
 ## Image Details

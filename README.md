@@ -227,7 +227,7 @@ docker build -t nhl-stats-tracker .
 
 2. Run the container:
 ```bash
-docker run -d -p 3000:3000 --name nhl-stats-tracker nhl-stats-tracker
+docker run -d -p 3000:80 --name nhl-stats-tracker nhl-stats-tracker
 ```
 
 3. Open your browser and navigate to `http://localhost:3000`
