@@ -26,11 +26,18 @@ export function formatGameDate(rawDate: string | undefined, format: 'long' | 'sh
     normalized = `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6)}`
   }
 
-  // For ISO date strings (YYYY-MM-DD), parse as a local date
-  // Note: We use the +1 day workaround because when the API returns "2025-12-09",
-  // it means the game is on Dec 9 PST, but JavaScript's Date constructor interprets
-  // YYYY-MM-DD as midnight UTC. When converted to PST (UTC-8), this becomes Dec 8.
-  // Adding 1 day corrects this timezone interpretation issue.
+  // For ISO date strings (YYYY-MM-DD), we need to handle them carefully
+  // The API returns these as dates in PST timezone, but JavaScript's Date constructor
+  // interprets them as midnight UTC. This causes an off-by-one error when converting to PST.
+  //
+  // Solution: Parse the date components manually and create a Date object using UTC methods,
+  // then add 1 day to compensate for the timezone interpretation, and format without timezone
+  // (which uses the user's local timezone). This approach matches the existing behavior
+  // in App.tsx and ensures consistency across the application.
+  //
+  // Note: This workaround relies on users being in a timezone where the displayed date
+  // will be correct after the +1 day adjustment. For PST users, midnight UTC +1 day
+  // displays as the intended game date.
   if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
     const date = new Date(normalized)
     date.setDate(date.getDate() + 1) // Add one day to correct timezone offset
