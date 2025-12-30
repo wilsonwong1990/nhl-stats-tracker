@@ -2,6 +2,11 @@
 
 This guide covers all the ways you can install and run NHL Stats Tracker.
 
+## Prerequisites
+
+- **Node.js** and **npm** (v9 or higher) or **yarn** package manager for npm deployment
+- **Docker** for containerization deployment
+
 ## Quick Start (Pre-built Packages)
 
 ### Using Pre-built Docker Image
@@ -69,13 +74,6 @@ function App() {
 - Compatible with React 18+
 - Zero additional configuration needed
 
----
-
-## Prerequisites
-
-- **Node.js** (v18 or higher recommended)
-- **npm** (v9 or higher) or **yarn** package manager
-- **Docker** (optional, for containerized deployment)
 
 ## Installation Methods (Build from Source)
 
