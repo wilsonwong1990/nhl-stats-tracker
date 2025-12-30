@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Target, Clock, Trophy, Warning, MapPin, Star, Shield } from '@phosphor-icons/react'
 import { fetchGameDetails, type GameDetails } from '@/lib/nhl-api'
+import { formatGameDate } from '@/lib/date-utils'
 
 interface GameModalProps {
   isOpen: boolean
@@ -45,35 +46,6 @@ export function GameModal({ isOpen, onClose, gameId }: GameModalProps) {
 
     loadGameDetails()
   }, [isOpen, gameId])
-
-  const formatDate = (rawDate?: string) => {
-    if (!rawDate) return 'Date TBD'
-
-    let normalized = rawDate
-
-    // Handle compact YYYYMMDD strings returned by some NHL endpoints
-    if (/^\d{8}$/.test(rawDate)) {
-      normalized = `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6)}`
-    }
-
-    // Ensure we always parse in UTC to avoid timezone drift
-    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-      normalized = `${normalized}T00:00:00Z`
-    }
-
-    const date = new Date(normalized)
-    if (Number.isNaN(date.getTime())) {
-      console.warn('[GameModal] Unable to parse game date value:', rawDate)
-      return 'Date TBD'
-    }
-
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
 
   const parseToSeconds = (value?: string) => {
     if (!value) return 0
@@ -127,7 +99,7 @@ export function GameModal({ isOpen, onClose, gameId }: GameModalProps) {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock size={16} weight="bold" />
-                <span>{formatDate(gameDetails.gameDate)}</span>
+                <span>{formatGameDate(gameDetails.gameDate)}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin size={16} weight="bold" />

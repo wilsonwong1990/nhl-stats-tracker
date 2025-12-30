@@ -47,6 +47,7 @@ import {
 import { fetchAllTeamData, fetchGameDetails, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, type GameDetails, DEFAULT_SEASON } from '@/lib/nhl-api'
 import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
 import { getAvailableSeasons, getCurrentSeason, formatSeasonDisplay } from '@/lib/seasons'
+import { formatGameDate } from '@/lib/date-utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
@@ -346,12 +347,6 @@ function App() {
     setCurrentPage((current) => Math.min(totalPages - 1, (current ?? 0) + 1))
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    date.setDate(date.getDate() + 1) // Add one day to correct timezone offset
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  }
-
   const lastUpdated = cachedTeamData ? new Date(cachedTeamData.timestamp).toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -610,7 +605,7 @@ function App() {
                                 className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} cursor-pointer hover:bg-accent/10 transition-colors`}
                                 onClick={() => handleGameClick(game)}
                               >
-                                <td className="px-4 py-3 text-sm">{formatDate(game.date)}</td>
+                                <td className="px-4 py-3 text-sm">{formatGameDate(game.date, 'short')}</td>
                                 <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
                                 <td className="px-4 py-3 text-sm">{game.opponent}</td>
                                 <td className="px-4 py-3">
