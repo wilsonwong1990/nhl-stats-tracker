@@ -607,7 +607,10 @@ function App() {
                               >
                                 <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{formatGameDate(game.date, 'short')}</td>
                                 <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium tabular-nums">{game.time}</td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{game.opponent}</td>
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">
+                                  <span className="sm:hidden">{game.opponentAbbrev}</span>
+                                  <span className="hidden sm:inline">{game.opponent}</span>
+                                </td>
                                 <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   <Badge 
                                     variant={game.isHome ? 'default' : 'secondary'}

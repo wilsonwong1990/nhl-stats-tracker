@@ -12,6 +12,7 @@ import { DEFAULT_TEAM_ID, getTeamInfo, type TeamId, type TeamInfo } from './team
 export interface Game {
   id: string
   opponent: string
+  opponentAbbrev: string
   date: string
   time: string
   isHome: boolean
@@ -236,6 +237,7 @@ export async function fetchTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON)
         games.push({
           id: game.id.toString(),
           opponent: opponent,
+          opponentAbbrev: opponentAbbrev || 'TBD',
           date: getGameDateInPST(game.startTimeUTC), // Convert UTC start time to PST date
           time: formatGameTime(game.startTimeUTC),
           isHome,
