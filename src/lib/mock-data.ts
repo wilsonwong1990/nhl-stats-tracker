@@ -165,16 +165,40 @@ export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
     gameDate.setDate(today.getDate() - 60 + i) // Start 60 days ago
     const isHome = i % 2 === 0
     const isCompleted = i < 50 // First 50 games are completed
-    const opponents = [
-      'Colorado Avalanche', 'Los Angeles Kings', 'Edmonton Oilers', 'San Jose Sharks', 'Anaheim Ducks', 
-      'Vancouver Canucks', 'Winnipeg Jets', 'Minnesota Wild', 'St. Louis Blues', 'Dallas Stars', 
-      'Nashville Predators', 'Chicago Blackhawks', 'Detroit Red Wings', 'Columbus Blue Jackets',
-      'Pittsburgh Penguins', 'Washington Capitals', 'New York Rangers', 'New York Islanders', 
-      'New Jersey Devils', 'Philadelphia Flyers', 'Boston Bruins', 'Buffalo Sabres', 
-      'Toronto Maple Leafs', 'Ottawa Senators', 'Montreal Canadiens', 'Tampa Bay Lightning',
-      'Florida Panthers', 'Carolina Hurricanes', 'Seattle Kraken', 'Calgary Flames'
+    const opponentsData = [
+      { name: 'Colorado Avalanche', abbrev: 'COL' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'San Jose Sharks', abbrev: 'SJS' },
+      { name: 'Anaheim Ducks', abbrev: 'ANA' },
+      { name: 'Vancouver Canucks', abbrev: 'VAN' },
+      { name: 'Winnipeg Jets', abbrev: 'WPG' },
+      { name: 'Minnesota Wild', abbrev: 'MIN' },
+      { name: 'St. Louis Blues', abbrev: 'STL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Nashville Predators', abbrev: 'NSH' },
+      { name: 'Chicago Blackhawks', abbrev: 'CHI' },
+      { name: 'Detroit Red Wings', abbrev: 'DET' },
+      { name: 'Columbus Blue Jackets', abbrev: 'CBJ' },
+      { name: 'Pittsburgh Penguins', abbrev: 'PIT' },
+      { name: 'Washington Capitals', abbrev: 'WSH' },
+      { name: 'New York Rangers', abbrev: 'NYR' },
+      { name: 'New York Islanders', abbrev: 'NYI' },
+      { name: 'New Jersey Devils', abbrev: 'NJD' },
+      { name: 'Philadelphia Flyers', abbrev: 'PHI' },
+      { name: 'Boston Bruins', abbrev: 'BOS' },
+      { name: 'Buffalo Sabres', abbrev: 'BUF' },
+      { name: 'Toronto Maple Leafs', abbrev: 'TOR' },
+      { name: 'Ottawa Senators', abbrev: 'OTT' },
+      { name: 'Montreal Canadiens', abbrev: 'MTL' },
+      { name: 'Tampa Bay Lightning', abbrev: 'TBL' },
+      { name: 'Florida Panthers', abbrev: 'FLA' },
+      { name: 'Carolina Hurricanes', abbrev: 'CAR' },
+      { name: 'Seattle Kraken', abbrev: 'SEA' },
+      { name: 'Calgary Flames', abbrev: 'CGY' }
     ]
     
+    const opponentData = opponentsData[i % opponentsData.length]
     const teamWon = isCompleted ? (i % 3 !== 2) : undefined // Team wins about 2/3 of games
     const homeScore = isCompleted ? (isHome ? (teamWon ? 4 : 2) : (teamWon ? 3 : 2)) : undefined
     const awayScore = isCompleted ? (isHome ? (teamWon ? 2 : 4) : (teamWon ? 2 : 3)) : undefined
@@ -182,7 +206,8 @@ export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
 
     return {
       id: `mock-reg-${i}`,
-      opponent: opponents[i % opponents.length],
+      opponent: opponentData.name,
+      opponentAbbrev: opponentData.abbrev,
       date: gameDate.toISOString().split('T')[0],
       time: i % 3 === 0 ? '7:00 PM' : i % 3 === 1 ? '7:30 PM' : '6:00 PM',
       isHome,
@@ -199,19 +224,63 @@ export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
     const gameDate = new Date(today)
     gameDate.setDate(today.getDate() - 10 + i) // Playoffs in last 10 days
     const isHome = i % 2 === 0
-    const opponents = [
-      'Los Angeles Kings', 'Los Angeles Kings', 'Los Angeles Kings', 'Los Angeles Kings', 'Los Angeles Kings', 'Los Angeles Kings', // Round 1 (won 4-2)
-      'Edmonton Oilers', 'Edmonton Oilers', 'Edmonton Oilers', 'Edmonton Oilers', 'Edmonton Oilers', 'Edmonton Oilers', // Round 2 (won 4-2)
-      'Dallas Stars', 'Dallas Stars', 'Dallas Stars', 'Dallas Stars', 'Dallas Stars', 'Dallas Stars', // Round 3 (won 4-2)
-      'Florida Panthers', 'Florida Panthers', 'Florida Panthers', 'Florida Panthers' // Stanley Cup Final (won 4-0)
+    const opponentsData = [
+      // Round 1 (won 4-2)
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      // Round 2 (won 4-2)
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      // Round 3 (won 4-2)
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      // Stanley Cup Final (won 4-0)
+      { name: 'Florida Panthers', abbrev: 'FLA' },
+      { name: 'Florida Panthers', abbrev: 'FLA' },
+      { name: 'Florida Panthers', abbrev: 'FLA' },
+      { name: 'Florida Panthers', abbrev: 'FLA' }
     ]
     
     // Explicit win/loss pattern for each game: 16 wins total across 4 rounds
     const teamWins = [
-      true, false, true, true, false, true, // Round 1: Won 4-2 (6 games)
-      true, true, false, true, false, true, // Round 2: Won 4-2 (6 games)
-      false, true, true, false, true, true, // Round 3: Won 4-2 (6 games)
-      true, true, true, true // Cup Final: Won 4-0 (4 games)
+      // Round 1: Won 4-2 (6 games)
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      // Round 2: Won 4-2 (6 games)
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      // Round 3: Won 4-2 (6 games)
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      // Cup Final: Won 4-0 (4 games)
+      true,
+      true,
+      true,
+      true
     ]
     
     const actualTeamWon = i < teamWins.length ? teamWins[i] : false
@@ -222,7 +291,8 @@ export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
 
     return {
       id: `mock-playoff-${i}`,
-      opponent: opponents[i],
+      opponent: opponentsData[i].name,
+      opponentAbbrev: opponentsData[i].abbrev,
       date: gameDate.toISOString().split('T')[0],
       time: '5:00 PM',
       isHome,

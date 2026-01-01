@@ -1,6 +1,6 @@
 {
     "name": "@wilsonwong1990/nhl-stats-tracker",
-    "version": "1.0.0",
+    "version": "1.3.0",
     "type": "module",
     "description": "NHL Stats Tracker - A stats tracking application for the NHL",
     "author": "wilsonwong1990",
