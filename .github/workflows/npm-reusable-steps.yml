@@ -84,7 +84,8 @@ jobs:
           default: ${{ inputs.default-bump }}
           version-type: ${{ inputs.version-type }}
           tag-prefix: ${{ inputs.tag-prefix }}
-          commit-message: "chore: bump version to {{version}} [skip ci]"
+          skip-commit: 'true'
+          skip-tag: 'true'
 
       - name: Publish package
         run: npm publish
