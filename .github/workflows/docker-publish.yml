@@ -8,6 +8,9 @@ on:
 
 jobs:
   build_on_merge:
+    permissions:
+      contents: write
+      packages: write
     if: github.event.pull_request.merged == true
     uses: ./.github/workflows/docker-reusable-steps.yml
     with:
@@ -17,6 +20,9 @@ jobs:
       registry-username: ${{ github.actor }}
       registry-password: ${{ secrets.GITHUB_TOKEN }}
   build_manual:
+    permissions:
+      contents: write
+      packages: write
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/docker-reusable-steps.yml
     with:

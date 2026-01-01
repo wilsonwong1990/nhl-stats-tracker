@@ -9,6 +9,9 @@ on:
 
 jobs:
   publish_on_merge:
+    permissions:
+      contents: write
+      packages: write
     if: github.event.pull_request.merged == true
     uses: ./.github/workflows/npm-reusable-steps.yml
     with:
@@ -20,6 +23,9 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
 
   publish_manual:
+    permissions:
+      contents: write
+      packages: write
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/npm-reusable-steps.yml
     with:
