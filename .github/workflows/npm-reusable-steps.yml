@@ -75,17 +75,17 @@ jobs:
       - name: Build package
         run: npm run build
 
-      - name: Automated version bump
-        id: bump
-        uses: phips28/gh-action-bump-version@v11.0.7
-        env:
-          GITHUB_TOKEN: ${{ secrets.token }}
-        with:
-          default: ${{ inputs.default-bump }}
-          version-type: ${{ inputs.version-type }}
-          tag-prefix: ${{ inputs.tag-prefix }}
-          skip-commit: 'true'
-          skip-tag: 'true'
+      #- name: Automated version bump
+      #  id: bump
+      #  uses: phips28/gh-action-bump-version@v11.0.7
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.token }}
+      #  with:
+      #    default: ${{ inputs.default-bump }}
+      #    version-type: ${{ inputs.version-type }}
+      #    tag-prefix: ${{ inputs.tag-prefix }}
+      #    skip-commit: 'true'
+      #    skip-tag: 'true'
 
       - name: Publish package
         run: npm publish
