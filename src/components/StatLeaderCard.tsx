@@ -43,14 +43,25 @@ export function StatLeaderCard({ title, icon, leaders, isLoading, formatValue, o
           leaders.map((player, index) => (
             <div 
               key={player.name} 
-              className={`flex items-center justify-between ${onPlayerClick ? 'cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors rounded-md px-2 py-1 touch-manipulation' : ''}`}
+              className={`flex items-center justify-between ${onPlayerClick ? 'group cursor-pointer rounded-md px-2 py-1 touch-manipulation transition-colors hover:bg-accent/15 active:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:bg-accent/20 hover:ring-1 hover:ring-ring/30' : ''}`}
+              role={onPlayerClick ? 'button' : undefined}
+              tabIndex={onPlayerClick ? 0 : undefined}
+              onKeyDown={(e) => {
+                if (!onPlayerClick) return
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onPlayerClick(player)
+                }
+              }}
               onClick={() => onPlayerClick?.(player)}
             >
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-muted-foreground w-6">
                   #{index + 1}
                 </span>
-                <span className="text-sm">{player.name}</span>
+                <span className="text-sm group-hover:underline group-active:underline">
+                  {player.name}
+                </span>
               </div>
               <span className="text-sm font-medium tabular-nums text-accent">
                 {formatter(player.value)}

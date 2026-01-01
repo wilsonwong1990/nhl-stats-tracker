@@ -602,14 +602,22 @@ function App() {
                           return (
                             <Fragment key={game.id}>
                               <tr 
-                                className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} cursor-pointer hover:bg-accent/10 active:bg-accent/20 transition-colors touch-manipulation`}
+                                className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} group cursor-pointer transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 hover:[&>td]:bg-accent/15 active:[&>td]:bg-accent/25 focus-visible:[&>td]:bg-accent/20`}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    handleGameClick(game)
+                                  }
+                                }}
                                 onClick={() => handleGameClick(game)}
                               >
                                 <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{formatGameDate(game.date, 'short')}</td>
                                 <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium tabular-nums">{game.time}</td>
                                 <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">
-                                  <span className="sm:hidden">{game.opponentAbbrev}</span>
-                                  <span className="hidden sm:inline">{game.opponent}</span>
+                                  <span className="sm:hidden group-hover:underline group-active:underline">{game.opponentAbbrev}</span>
+                                  <span className="hidden sm:inline group-hover:underline group-active:underline">{game.opponent}</span>
                                 </td>
                                 <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   <Badge 
@@ -934,12 +942,20 @@ function App() {
                         {players.map(player => (
                           <div 
                             key={`${player.name}-${player.number}`} 
-                            className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 active:bg-muted transition-colors cursor-pointer touch-manipulation"
+                            className="group flex items-center justify-between p-3 border rounded cursor-pointer touch-manipulation transition-colors hover:bg-accent/15 active:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:bg-accent/20 hover:ring-1 hover:ring-ring/30"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                handlePlayerClick(player)
+                              }
+                            }}
                             onClick={() => handlePlayerClick(player)}
                           >
                             <div className="flex items-center gap-2">
                               <div>
-                                <div className="text-sm font-medium">{player.name}</div>
+                                <div className="text-sm font-medium group-hover:underline group-active:underline">{player.name}</div>
                                 <div className="text-xs text-muted-foreground">{player.position}</div>
                               </div>
                               {player.captaincy && (
