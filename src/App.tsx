@@ -586,12 +586,12 @@ function App() {
                     <table className="w-full">
                       <thead className="border-b border-border">
                         <tr className="text-left">
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Date</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Time (PST)</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Opponent</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Location</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Score</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Result</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Date</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Time (PST)</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Opponent</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Location</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Score</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Result</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -602,21 +602,21 @@ function App() {
                           return (
                             <Fragment key={game.id}>
                               <tr 
-                                className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} cursor-pointer hover:bg-accent/10 transition-colors`}
+                                className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} cursor-pointer hover:bg-accent/10 active:bg-accent/20 transition-colors touch-manipulation`}
                                 onClick={() => handleGameClick(game)}
                               >
-                                <td className="px-4 py-3 text-sm">{formatGameDate(game.date, 'short')}</td>
-                                <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
-                                <td className="px-4 py-3 text-sm">{game.opponent}</td>
-                                <td className="px-4 py-3">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{formatGameDate(game.date, 'short')}</td>
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium tabular-nums">{game.time}</td>
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{game.opponent}</td>
+                                <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   <Badge 
                                     variant={game.isHome ? 'default' : 'secondary'}
-                                    className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+                                    className={game.isHome ? 'bg-accent text-accent-foreground text-xs' : 'text-xs'}
                                   >
                                     {game.isHome ? 'Home' : 'Away'}
                                   </Badge>
                                 </td>
-                                <td className="px-4 py-3 text-sm font-medium tabular-nums">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium tabular-nums">
                                   {(game.gameState === 'LIVE' || isCompleted) && game.homeScore !== undefined && game.awayScore !== undefined ? (
                                     game.isHome 
                                       ? `${game.homeScore} - ${game.awayScore}`
@@ -625,7 +625,7 @@ function App() {
                                     <span className="text-muted-foreground">-</span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   {game.gameState === 'LIVE' ? (
                                     <div className="flex items-center gap-1">
                                       <Circle className="text-red-500 animate-pulse" size={12} weight="fill" />
@@ -931,7 +931,7 @@ function App() {
                         {players.map(player => (
                           <div 
                             key={`${player.name}-${player.number}`} 
-                            className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors cursor-pointer"
+                            className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 active:bg-muted transition-colors cursor-pointer touch-manipulation"
                             onClick={() => handlePlayerClick(player)}
                           >
                             <div className="flex items-center gap-2">

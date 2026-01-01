@@ -43,7 +43,7 @@ export function StatLeaderCard({ title, icon, leaders, isLoading, formatValue, o
           leaders.map((player, index) => (
             <div 
               key={player.name} 
-              className={`flex items-center justify-between ${onPlayerClick ? 'cursor-pointer hover:bg-muted/50 transition-colors rounded-md px-2 py-1' : ''}`}
+              className={`flex items-center justify-between ${onPlayerClick ? 'cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors rounded-md px-2 py-1 touch-manipulation' : ''}`}
               onClick={() => onPlayerClick?.(player)}
             >
               <div className="flex items-center gap-3">
