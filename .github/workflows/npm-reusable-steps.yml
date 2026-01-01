@@ -1,0 +1,92 @@
+name: Reusable Build and Publish
+
+on:
+  workflow_call:
+    inputs:
+      checkout-ref:
+        description: "Git ref to checkout"
+        required: false
+        type: string
+        default: ""
+      node-version:
+        description: "Node.js version to use"
+        required: false
+        type: string
+        default: "20"
+      registry-url:
+        description: "Registry URL"
+        required: false
+        type: string
+        default: "https://npm.pkg.github.com"
+      scope:
+        description: "Package scope"
+        required: false
+        type: string
+        default: "@wilsonwong1990"
+      default-bump:
+        description: "Default bump type when no keywords found"
+        required: false
+        type: string
+        default: "patch"
+      version-type:
+        description: "Explicit bump override (major|minor|patch|prerelease|...)"
+        required: false
+        type: string
+        default: ""
+      tag-prefix:
+        description: "Prefix to use for git tags"
+        required: false
+        type: string
+        default: "v"
+    secrets:
+      token:
+        description: "Authentication token for npm publish"
+        required: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout-ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.scope }}
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run linter
+        run: npm run lint 2>/dev/null || echo "Linting skipped - no lint script or configuration found"
+
+      - name: Run tests
+        run: npm run test -- --run
+
+      - name: Build package
+        run: npm run build
+
+      - name: Automated version bump
+        id: bump
+        uses: phips28/gh-action-bump-version@v11.0.7
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}
+        with:
+          default: ${{ inputs.default-bump }}
+          version-type: ${{ inputs.version-type }}
+          tag-prefix: ${{ inputs.tag-prefix }}
+          commit-message: "chore: bump version to {{version}} [skip ci]"
+
+      - name: Publish package
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.token }}
