@@ -1,11 +1,8 @@
-import { getCurrentSeason } from './seasons'
 import { getGameDateInPST, formatGameTime } from './date-utils'
-
-const NHL_API_BASE = '/nhl-api/v1'
-// Default to current season based on current date
-export const DEFAULT_SEASON = getCurrentSeason().id
+import { DEFAULT_SEASON, NHL_API_BASE, SCHEDULE_FETCH_TIMEOUT_MS, STANDINGS_LOCALE, STANDINGS_TIME_ZONE } from './nhl-api.constants'
+export { DEFAULT_SEASON } from './nhl-api.constants'
 // Optional mock data import (only used when env flag is set)
-import getMockData from './mock-data'
+import getMockData, { getMockCareerStats, getMockGameDetails, shouldUseMockData } from './mock-data'
 import { DEFAULT_TEAM_ID, getTeamInfo, type TeamId, type TeamInfo } from './teams'
 
 
@@ -163,7 +160,7 @@ export interface TeamStats {
 
 export async function fetchTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON): Promise<Game[]> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 10000)
+  const timeout = setTimeout(() => controller.abort(), SCHEDULE_FETCH_TIMEOUT_MS)
   
   try {
     const url = `${NHL_API_BASE}/club-schedule-season/${team.nhlAbbrev}/${season}`
@@ -262,8 +259,8 @@ export async function fetchTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON)
 }
 
 const getCurrentStandingsDate = () => {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/New_York',
+  return new Intl.DateTimeFormat(STANDINGS_LOCALE, {
+    timeZone: STANDINGS_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
@@ -336,160 +333,6 @@ async function fetchStandings(teamInfo: TeamInfo): Promise<StandingsInfo> {
   return { conferencePosition: 0, isWildcard: false, divisionPosition: 0, wins: 0, losses: 0, otLosses: 0 }
 }
 
-async function fetchPuckPediaInjuries(team: TeamInfo): Promise<InjuredPlayer[]> {
-  if (!team.puckpediaSlug) {
-    console.warn(`No PuckPedia slug configured for ${team.fullName}`)
-    return []
-  }
-  try {
-    console.log(`Fetching ${team.fullName} injury data from PuckPedia`)
-    
-    // Try their API endpoint instead of HTML scraping
-    const response = await fetch(`/puckpedia-api/api/teams/${team.puckpediaSlug}/injuries`, {
-      headers: { 
-        'Accept': 'application/json',
-        'Referer': 'https://puckpedia.com/'
-      }
-    })
-    
-    if (!response.ok) {
-      console.error('PuckPedia API fetch failed:', response.status, response.statusText)
-      
-      // Try the HTML page with better headers
-      const htmlResponse = await fetch(`/puckpedia-api/team/${team.puckpediaSlug}/injuries`, {
-        headers: { 
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Referer': 'https://puckpedia.com/',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'same-origin'
-        }
-      })
-      
-      if (!htmlResponse.ok) {
-        console.error('PuckPedia HTML fetch also failed:', htmlResponse.status, htmlResponse.statusText)
-        return []
-      }
-      
-      return await parseHTMLInjuries(htmlResponse)
-    }
-    
-    // If JSON endpoint works, parse it
-    const data = await response.json()
-    console.log('PuckPedia JSON data received:', data)
-    
-    return parseJSONInjuries(data)
-    
-  } catch (error) {
-    console.error(`Error fetching PuckPedia ${team.nhlAbbrev} injuries:`, error)
-    return []
-  }
-}
-
-async function parseHTMLInjuries(response: Response): Promise<InjuredPlayer[]> {
-  const html = await response.text()
-  console.log('PuckPedia HTML response received, length:', html.length)
-  
-  const injuries: InjuredPlayer[] = []
-  
-  // Parse HTML
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(html, 'text/html')
-  
-  // Find all player links
-  const playerLinks = doc.querySelectorAll('a[href*="/player/"]')
-  console.log('Found', playerLinks.length, 'player links')
-  
-  for (const link of playerLinks) {
-    const playerName = link.textContent?.trim()
-    if (!playerName) continue
-    
-    // Get surrounding text to find injury details
-    let currentNode: Node | null = link.parentElement
-    let searchText = ''
-    
-    // Go up a few levels to get more context
-    for (let i = 0; i < 3 && currentNode; i++) {
-      searchText = currentNode.textContent || ''
-      if (searchText.includes('Expected Return')) {
-        break
-      }
-      currentNode = currentNode.parentElement
-    }
-    
-    if (!searchText) continue
-    
-    // Extract status and injury type - look for patterns like "IR-LT | WRIST" or "OUT | LOWER BODY"
-    const statusPattern = /(OUT|IR-LT|IR-NR|IR|LTIR|SUSPENSION)\s*\|\s*([A-Z\s]+)/i
-    const statusMatch = searchText.match(statusPattern)
-    
-    let status = ''
-    let injuryType = ''
-    
-    if (statusMatch) {
-      status = statusMatch[1].trim()
-      injuryType = statusMatch[2].trim()
-    }
-    
-    // Extract expected return date
-    const returnPattern = /Expected Return:\s*([A-Za-z]+\s+\d+,\s+\d+)/i
-    const returnMatch = searchText.match(returnPattern)
-    
-    let expectedReturn = ''
-    let daysOut = 7
-    
-    if (returnMatch) {
-      expectedReturn = returnMatch[1].trim()
-      
-      // Calculate days out from return date
-      try {
-        const returnDate = new Date(expectedReturn)
-        const today = new Date()
-        const diffTime = returnDate.getTime() - today.getTime()
-        daysOut = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
-      } catch (e) {
-        console.warn('Could not parse return date:', expectedReturn)
-      }
-    }
-    
-    // Only add if we found some injury information
-    if (status || expectedReturn) {
-      injuries.push({
-        name: playerName,
-        daysOut: daysOut,
-        expectedReturn: expectedReturn || undefined,
-        status: status || undefined,
-        injuryType: injuryType || undefined
-      })
-      
-      console.log(`Found injury: ${playerName} - ${status} | ${injuryType} - Returns: ${expectedReturn}`)
-    }
-  }
-  
-  console.log('Total injuries found:', injuries.length)
-  return injuries
-}
-
-function parseJSONInjuries(data: any): InjuredPlayer[] {
-  const injuries: InjuredPlayer[] = []
-  
-  // Parse JSON structure (we'll need to see what the actual structure is)
-  if (Array.isArray(data)) {
-    for (const injury of data) {
-      injuries.push({
-        name: injury.playerName || injury.name || 'Unknown',
-        daysOut: injury.daysOut || 7,
-        expectedReturn: injury.expectedReturn || injury.returnDate || undefined,
-        status: injury.status || undefined,
-        injuryType: injury.injuryType || injury.injury || undefined
-      })
-    }
-  }
-  
-  return injuries
-}
-
 export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): Promise<Omit<TeamStats, 'games'>> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
@@ -502,8 +345,8 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
       `${NHL_API_BASE}/roster/${team.nhlAbbrev}/${season}`,
     ]
     
-    // Fetch NHL stats, PuckPedia injuries, and standings in parallel
-    const [nhelpResponses, puckpediaInjuries, standings] = await Promise.allSettled([
+    // Fetch NHL stats and standings in parallel
+    const [nhelpResponses, standings] = await Promise.allSettled([
       Promise.allSettled(
         endpoints.map(endpoint => 
           fetch(endpoint, {
@@ -512,7 +355,6 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
           })
         )
       ),
-      fetchPuckPediaInjuries(team),
       fetchStandings(team)
     ])
     
@@ -527,14 +369,7 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
     // Extract NHL API responses
     const responses = nhelpResponses.status === 'fulfilled' ? nhelpResponses.value : []
     
-    // Extract injury data
-    if (puckpediaInjuries.status === 'fulfilled') {
-      injuries = puckpediaInjuries.value
-      console.log('✓ PuckPedia injuries loaded:', injuries.length, 'injuries')
-    } else {
-      console.log('✗ PuckPedia injuries failed:', puckpediaInjuries.reason)
-      injuries = [{ name: 'No current injuries reported', daysOut: 0 }]
-    }
+    // Process standings result
     if (standings.status === 'fulfilled') {
       standingsInfo = standings.value
       console.log('✓ Standings loaded: position', standingsInfo.conferencePosition, 'wildcard:', standingsInfo.isWildcard)
@@ -920,100 +755,11 @@ export async function fetchTeamStats(team: TeamInfo, season = DEFAULT_SEASON): P
 
 export async function fetchGameDetails(gameId: string): Promise<GameDetails | null> {
   // Return mock data if we're in mock mode
-  const useMock = import.meta.env?.VITE_USE_MOCK === 'true'
+  const useMock = shouldUseMockData()
   if (useMock || gameId.startsWith('mock-')) {
     console.log('Returning mock game details for:', gameId)
     
-    // Mock completed game with full details
-    if (gameId === 'mock-completed') {
-      return {
-        id: gameId,
-        gameDate: '2025-12-15',
-        venue: 'T-Mobile Arena',
-        homeTeam: {
-          name: 'Vegas Golden Knights',
-          abbrev: 'VGK',
-          score: 4,
-          shots: 32
-        },
-        awayTeam: {
-          name: 'Colorado Avalanche',
-          abbrev: 'COL',
-          score: 3,
-          shots: 28
-        },
-        gameState: 'OFF',
-        period: 3,
-        periodType: 'REG',
-        threeStars: [
-          { name: 'Jack Eichel', position: 'C' },
-          { name: 'Nathan MacKinnon', position: 'C' },
-          { name: 'Adin Hill', position: 'G' }
-        ],
-        goalScorers: [
-          { name: 'Jack Eichel', team: 'VGK', period: 1, timeInPeriod: '5:23' },
-          { name: 'Nathan MacKinnon', team: 'COL', period: 1, timeInPeriod: '12:45' },
-          { name: 'Mark Stone', team: 'VGK', period: 2, timeInPeriod: '3:15' },
-          { name: 'Mikko Rantanen', team: 'COL', period: 2, timeInPeriod: '10:22' },
-          { name: 'Ivan Barbashev', team: 'VGK', period: 3, timeInPeriod: '8:17' },
-          { name: 'Cale Makar', team: 'COL', period: 3, timeInPeriod: '14:56' },
-          { name: 'Tomas Hertl', team: 'VGK', period: 3, timeInPeriod: '18:32' }
-        ],
-        penalties: [
-          { player: 'Shea Theodore', team: 'VGK', period: 1, timeInPeriod: '8:45', penalty: 'Tripping', duration: 2 },
-          { player: 'Devon Toews', team: 'COL', period: 2, timeInPeriod: '5:12', penalty: 'High-sticking', duration: 2 },
-          { player: 'William Karlsson', team: 'VGK', period: 3, timeInPeriod: '11:23', penalty: 'Holding', duration: 2 }
-        ],
-        goaltenders: [
-          {
-            name: 'Adin Hill',
-            team: 'VGK',
-            teamName: 'Vegas Golden Knights',
-            saves: 31,
-            shotsAgainst: 34,
-            goalsAgainst: 3,
-            savePctg: 0.912,
-            timeOnIce: '60:00',
-            decision: 'W',
-            isStarter: true
-          },
-          {
-            name: 'Alexandar Georgiev',
-            team: 'COL',
-            teamName: 'Colorado Avalanche',
-            saves: 28,
-            shotsAgainst: 32,
-            goalsAgainst: 4,
-            savePctg: 0.875,
-            timeOnIce: '60:00',
-            decision: 'L',
-            isStarter: true
-          }
-        ]
-      }
-    }
-    
-    // Return mock data for future games
-    return {
-      id: gameId,
-      gameDate: new Date().toISOString(),
-      venue: 'T-Mobile Arena',
-      homeTeam: {
-        name: 'Vegas Golden Knights',
-        abbrev: 'VGK',
-        score: undefined,
-        shots: undefined
-      },
-      awayTeam: {
-        name: 'Colorado Avalanche',
-        abbrev: 'COL',
-        score: undefined,
-        shots: undefined
-      },
-      gameState: 'FUT',
-      period: undefined,
-      periodType: undefined
-    }
+    return getMockGameDetails(gameId)
   }
   
   try {
@@ -1235,7 +981,7 @@ export async function fetchGameDetails(gameId: string): Promise<GameDetails | nu
 
 export async function fetchAllTeamData(inputTeam: TeamInfo | TeamId, season = DEFAULT_SEASON): Promise<TeamStats> {
   const team = typeof inputTeam === 'string' ? getTeamInfo(inputTeam) : inputTeam
-  const useMock = import.meta.env?.VITE_USE_MOCK === 'true'
+  const useMock = shouldUseMockData()
   if (useMock) {
     console.warn('[TEAM] Using mock data (VITE_USE_MOCK=true). Live NHL API calls skipped.')
     const data = getMockData(team.id)
@@ -1296,56 +1042,10 @@ export interface CareerStats {
 
 export async function fetchPlayerCareerStats(playerId: number): Promise<CareerStats | null> {
   // Return mock career stats in mock mode
-  const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+  const useMock = shouldUseMockData()
   if (useMock) {
     console.log(`[MOCK] Returning mock career stats for player ${playerId}`)
-    // Mock career stats for Jack Eichel (8478403)
-    if (playerId === 8478403) {
-      return {
-        goals: 283,
-        assists: 438,
-        points: 721,
-        powerPlayGoals: 97,
-        powerPlayPoints: 284,
-        shorthandedGoals: 8,
-        shorthandedPoints: 18,
-        gameWinningGoals: 48,
-        gamesPlayed: 688
-      }
-    }
-    // Mock career stats for Adin Hill (goalie)
-    if (playerId === 8477850) {
-      return {
-        goals: 0,
-        assists: 0,
-        points: 0,
-        powerPlayGoals: 0,
-        powerPlayPoints: 0,
-        shorthandedGoals: 0,
-        shorthandedPoints: 0,
-        gameWinningGoals: 0,
-        gamesPlayed: 178,
-        wins: 87,
-        losses: 65,
-        otLosses: 16,
-        shutouts: 12,
-        saves: 4865,
-        shotsAgainst: 5342,
-        goalsAgainst: 477
-      }
-    }
-    // Return generic mock data for other players
-    return {
-      goals: 150,
-      assists: 200,
-      points: 350,
-      powerPlayGoals: 45,
-      powerPlayPoints: 120,
-      shorthandedGoals: 5,
-      shorthandedPoints: 10,
-      gameWinningGoals: 25,
-      gamesPlayed: 500
-    }
+    return getMockCareerStats(playerId)
   }
   
   try {

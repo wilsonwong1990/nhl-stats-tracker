@@ -1,7 +1,154 @@
 // Centralized mock data for development/reference only.
 // Import interfaces from nhl-api to preserve types.
-import { type Game, type PlayerStat, type InjuredPlayer, type RosterPlayer, type StandingsInfo, type TeamStats } from './nhl-api'
+import { type CareerStats, type Game, type GameDetails, type PlayerStat, type InjuredPlayer, type RosterPlayer, type StandingsInfo, type TeamStats } from './nhl-api'
 import { DEFAULT_TEAM_ID, getTeamInfo, type TeamId } from './teams'
+
+export const MOCK_ENV_FLAG = 'VITE_USE_MOCK'
+
+export function shouldUseMockData(): boolean {
+  const env = import.meta.env as Record<string, string | undefined>
+  return env?.[MOCK_ENV_FLAG] === 'true'
+}
+
+export function getMockGameDetails(gameId: string): GameDetails {
+  if (gameId === 'mock-completed') {
+    return {
+      id: gameId,
+      gameDate: '2025-12-15',
+      venue: 'T-Mobile Arena',
+      homeTeam: {
+        name: 'Vegas Golden Knights',
+        abbrev: 'VGK',
+        score: 4,
+        shots: 32
+      },
+      awayTeam: {
+        name: 'Colorado Avalanche',
+        abbrev: 'COL',
+        score: 3,
+        shots: 28
+      },
+      gameState: 'OFF',
+      period: 3,
+      periodType: 'REG',
+      threeStars: [
+        { name: 'Jack Eichel', position: 'C' },
+        { name: 'Nathan MacKinnon', position: 'C' },
+        { name: 'Adin Hill', position: 'G' }
+      ],
+      goalScorers: [
+        { name: 'Jack Eichel', team: 'VGK', period: 1, timeInPeriod: '5:23' },
+        { name: 'Nathan MacKinnon', team: 'COL', period: 1, timeInPeriod: '12:45' },
+        { name: 'Mark Stone', team: 'VGK', period: 2, timeInPeriod: '3:15' },
+        { name: 'Mikko Rantanen', team: 'COL', period: 2, timeInPeriod: '10:22' },
+        { name: 'Ivan Barbashev', team: 'VGK', period: 3, timeInPeriod: '8:17' },
+        { name: 'Cale Makar', team: 'COL', period: 3, timeInPeriod: '14:56' },
+        { name: 'Tomas Hertl', team: 'VGK', period: 3, timeInPeriod: '18:32' }
+      ],
+      penalties: [
+        { player: 'Shea Theodore', team: 'VGK', period: 1, timeInPeriod: '8:45', penalty: 'Tripping', duration: 2 },
+        { player: 'Devon Toews', team: 'COL', period: 2, timeInPeriod: '5:12', penalty: 'High-sticking', duration: 2 },
+        { player: 'William Karlsson', team: 'VGK', period: 3, timeInPeriod: '11:23', penalty: 'Holding', duration: 2 }
+      ],
+      goaltenders: [
+        {
+          name: 'Adin Hill',
+          team: 'VGK',
+          teamName: 'Vegas Golden Knights',
+          saves: 31,
+          shotsAgainst: 34,
+          goalsAgainst: 3,
+          savePctg: 0.912,
+          timeOnIce: '60:00',
+          decision: 'W',
+          isStarter: true
+        },
+        {
+          name: 'Alexandar Georgiev',
+          team: 'COL',
+          teamName: 'Colorado Avalanche',
+          saves: 28,
+          shotsAgainst: 32,
+          goalsAgainst: 4,
+          savePctg: 0.875,
+          timeOnIce: '60:00',
+          decision: 'L',
+          isStarter: true
+        }
+      ]
+    }
+  }
+
+  return {
+    id: gameId,
+    gameDate: new Date().toISOString(),
+    venue: 'T-Mobile Arena',
+    homeTeam: {
+      name: 'Vegas Golden Knights',
+      abbrev: 'VGK',
+      score: undefined,
+      shots: undefined
+    },
+    awayTeam: {
+      name: 'Colorado Avalanche',
+      abbrev: 'COL',
+      score: undefined,
+      shots: undefined
+    },
+    gameState: 'FUT',
+    period: undefined,
+    periodType: undefined
+  }
+}
+
+export function getMockCareerStats(playerId: number): CareerStats {
+  if (playerId === 8478403) {
+    return {
+      goals: 283,
+      assists: 438,
+      points: 721,
+      powerPlayGoals: 97,
+      powerPlayPoints: 284,
+      shorthandedGoals: 8,
+      shorthandedPoints: 18,
+      gameWinningGoals: 48,
+      gamesPlayed: 688
+    }
+  }
+
+  if (playerId === 8477850) {
+    return {
+      goals: 0,
+      assists: 0,
+      points: 0,
+      powerPlayGoals: 0,
+      powerPlayPoints: 0,
+      shorthandedGoals: 0,
+      shorthandedPoints: 0,
+      gameWinningGoals: 0,
+      gamesPlayed: 178,
+      wins: 87,
+      losses: 65,
+      otLosses: 16,
+      shutouts: 12,
+      saves: 4865,
+      shotsAgainst: 5342,
+      goalsAgainst: 477
+    }
+  }
+
+  return {
+    goals: 150,
+    assists: 200,
+    points: 350,
+    powerPlayGoals: 45,
+    powerPlayPoints: 120,
+    shorthandedGoals: 5,
+    shorthandedPoints: 10,
+    gameWinningGoals: 25,
+    gamesPlayed: 500
+  }
+}
 
 /**
  * getMockData returns a fully-populated TeamStats object with placeholder values.
