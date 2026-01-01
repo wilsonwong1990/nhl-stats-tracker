@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Position Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        
+        .test-button {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        
+        .test-button:hover {
+            background: #0284c7;
+        }
+        
+        /* Dialog styles - simulating the actual component */
+        .dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            display: none;
+        }
+        
+        .dialog-overlay.open {
+            display: block;
+        }
+        
+        /* OLD STYLE - centered (problematic on mobile) */
+        .dialog-content.old {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 24px;
+            z-index: 51;
+            width: calc(100% - 32px);
+            max-width: 32rem;
+            max-height: 90vh;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        /* NEW STYLE - top positioned (respects safe areas) */
+        .dialog-content.new {
+            position: fixed;
+            top: max(5vh, env(safe-area-inset-top));
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 24px;
+            z-index: 51;
+            width: calc(100% - 32px);
+            max-width: 32rem;
+            max-height: 90vh;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        /* On desktop, still center vertically */
+        @media (min-width: 640px) {
+            .dialog-content.new {
+                top: 50%;
+                transform: translate(-50%, -50%);
+            }
+        }
+        
+        .dialog-content.open {
+            display: block;
+        }
+        
+        .dialog-header {
+            margin-bottom: 16px;
+        }
+        
+        .dialog-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0ea5e9;
+            padding-right: 32px;
+        }
+        
+        .dialog-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: transparent;
+            border: none;
+            color: white;
+            opacity: 0.7;
+            cursor: pointer;
+            font-size: 24px;
+            padding: 4px 8px;
+        }
+        
+        .dialog-close:hover {
+            opacity: 1;
+        }
+        
+        .dialog-body {
+            line-height: 1.6;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .info {
+            background: #1e3a8a;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            margin: 20px 0 10px 0;
+            color: #0ea5e9;
+        }
+        
+        .instructions {
+            background: #3a2a1a;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <h1>Modal Position Test - Before & After</h1>
+    
+    <div class="instructions">
+        <strong>📱 Testing Instructions:</strong><br>
+        1. On mobile, open this page and test both modals<br>
+        2. The OLD modal should have the X button behind the URL bar<br>
+        3. The NEW modal should have the X button visible below the URL bar<br>
+        4. On desktop (>640px width), both should be centered vertically
+    </div>
+    
+    <h2>❌ OLD Implementation (Problematic)</h2>
+    <button class="test-button" onclick="openOldModal()">Open OLD Modal (Centered - Bad on Mobile)</button>
+    
+    <h2>✅ NEW Implementation (Fixed)</h2>
+    <button class="test-button" onclick="openNewModal()">Open NEW Modal (Top-aligned on Mobile)</button>
+    
+    <!-- OLD Modal -->
+    <div id="old-overlay" class="dialog-overlay" onclick="closeOldModal()"></div>
+    <div id="old-modal" class="dialog-content old">
+        <button class="dialog-close" onclick="closeOldModal()">✕</button>
+        <div class="dialog-header">
+            <div class="dialog-title">Player Stats (OLD)</div>
+        </div>
+        <div class="dialog-body">
+            <div class="stat-item">
+                <span>Goals</span>
+                <span style="color: #0ea5e9; font-weight: bold;">25</span>
+            </div>
+            <div class="stat-item">
+                <span>Assists</span>
+                <span style="color: #0ea5e9; font-weight: bold;">35</span>
+            </div>
+            <div class="stat-item">
+                <span>Points</span>
+                <span style="color: #0ea5e9; font-weight: bold;">60</span>
+            </div>
+            <div class="stat-item">
+                <span>Plus/Minus</span>
+                <span style="color: #0ea5e9; font-weight: bold;">+15</span>
+            </div>
+            <div class="stat-item">
+                <span>Power Play Goals</span>
+                <span style="color: #0ea5e9; font-weight: bold;">8</span>
+            </div>
+            <div class="stat-item">
+                <span>Shooting Percentage</span>
+                <span style="color: #0ea5e9; font-weight: bold;">12.5%</span>
+            </div>
+            <div class="info">
+                ⚠️ On mobile with URL bar, the close X is likely hidden behind the browser UI
+            </div>
+        </div>
+    </div>
+    
+    <!-- NEW Modal -->
+    <div id="new-overlay" class="dialog-overlay" onclick="closeNewModal()"></div>
+    <div id="new-modal" class="dialog-content new">
+        <button class="dialog-close" onclick="closeNewModal()">✕</button>
+        <div class="dialog-header">
+            <div class="dialog-title">Player Stats (NEW)</div>
+        </div>
+        <div class="dialog-body">
+            <div class="stat-item">
+                <span>Goals</span>
+                <span style="color: #0ea5e9; font-weight: bold;">25</span>
+            </div>
+            <div class="stat-item">
+                <span>Assists</span>
+                <span style="color: #0ea5e9; font-weight: bold;">35</span>
+            </div>
+            <div class="stat-item">
+                <span>Points</span>
+                <span style="color: #0ea5e9; font-weight: bold;">60</span>
+            </div>
+            <div class="stat-item">
+                <span>Plus/Minus</span>
+                <span style="color: #0ea5e9; font-weight: bold;">+15</span>
+            </div>
+            <div class="stat-item">
+                <span>Power Play Goals</span>
+                <span style="color: #0ea5e9; font-weight: bold;">8</span>
+            </div>
+            <div class="stat-item">
+                <span>Shooting Percentage</span>
+                <span style="color: #0ea5e9; font-weight: bold;">12.5%</span>
+            </div>
+            <div class="info" style="background: #1a4a1a;">
+                ✅ The close X should be visible below the URL bar on mobile
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function openOldModal() {
+            document.getElementById('old-overlay').classList.add('open');
+            document.getElementById('old-modal').classList.add('open');
+        }
+        
+        function closeOldModal() {
+            document.getElementById('old-overlay').classList.remove('open');
+            document.getElementById('old-modal').classList.remove('open');
+        }
+        
+        function openNewModal() {
+            document.getElementById('new-overlay').classList.add('open');
+            document.getElementById('new-modal').classList.add('open');
+        }
+        
+        function closeNewModal() {
+            document.getElementById('new-overlay').classList.remove('open');
+            document.getElementById('new-modal').classList.remove('open');
+        }
+    </script>
+</body>
+</html>
