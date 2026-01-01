@@ -78,18 +78,62 @@ export function getMockData(teamId: TeamId = DEFAULT_TEAM_ID): TeamStats {
     gameDate.setDate(today.getDate() - 10 + i) // Playoffs in last 10 days
     const isHome = i % 2 === 0
     const opponentsData = [
-      { name: 'Los Angeles Kings', abbrev: 'LAK' }, { name: 'Los Angeles Kings', abbrev: 'LAK' }, { name: 'Los Angeles Kings', abbrev: 'LAK' }, { name: 'Los Angeles Kings', abbrev: 'LAK' }, { name: 'Los Angeles Kings', abbrev: 'LAK' }, { name: 'Los Angeles Kings', abbrev: 'LAK' }, // Round 1 (won 4-2)
-      { name: 'Edmonton Oilers', abbrev: 'EDM' }, { name: 'Edmonton Oilers', abbrev: 'EDM' }, { name: 'Edmonton Oilers', abbrev: 'EDM' }, { name: 'Edmonton Oilers', abbrev: 'EDM' }, { name: 'Edmonton Oilers', abbrev: 'EDM' }, { name: 'Edmonton Oilers', abbrev: 'EDM' }, // Round 2 (won 4-2)
-      { name: 'Dallas Stars', abbrev: 'DAL' }, { name: 'Dallas Stars', abbrev: 'DAL' }, { name: 'Dallas Stars', abbrev: 'DAL' }, { name: 'Dallas Stars', abbrev: 'DAL' }, { name: 'Dallas Stars', abbrev: 'DAL' }, { name: 'Dallas Stars', abbrev: 'DAL' }, // Round 3 (won 4-2)
-      { name: 'Florida Panthers', abbrev: 'FLA' }, { name: 'Florida Panthers', abbrev: 'FLA' }, { name: 'Florida Panthers', abbrev: 'FLA' }, { name: 'Florida Panthers', abbrev: 'FLA' } // Stanley Cup Final (won 4-0)
+      // Round 1 (won 4-2)
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      { name: 'Los Angeles Kings', abbrev: 'LAK' },
+      // Round 2 (won 4-2)
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      { name: 'Edmonton Oilers', abbrev: 'EDM' },
+      // Round 3 (won 4-2)
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      { name: 'Dallas Stars', abbrev: 'DAL' },
+      // Stanley Cup Final (won 4-0)
+      { name: 'Florida Panthers', abbrev: 'FLA' },
+      { name: 'Florida Panthers', abbrev: 'FLA' },
+      { name: 'Florida Panthers', abbrev: 'FLA' },
+      { name: 'Florida Panthers', abbrev: 'FLA' }
     ]
     
     // Explicit win/loss pattern for each game: 16 wins total across 4 rounds
     const teamWins = [
-      true, false, true, true, false, true, // Round 1: Won 4-2 (6 games)
-      true, true, false, true, false, true, // Round 2: Won 4-2 (6 games)
-      false, true, true, false, true, true, // Round 3: Won 4-2 (6 games)
-      true, true, true, true // Cup Final: Won 4-0 (4 games)
+      // Round 1: Won 4-2 (6 games)
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      // Round 2: Won 4-2 (6 games)
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      // Round 3: Won 4-2 (6 games)
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      // Cup Final: Won 4-0 (4 games)
+      true,
+      true,
+      true,
+      true
     ]
     
     const actualTeamWon = i < teamWins.length ? teamWins[i] : false
