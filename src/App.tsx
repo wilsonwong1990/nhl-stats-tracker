@@ -1036,6 +1036,7 @@ function App() {
         rel="noopener noreferrer"
         className="fixed bottom-4 right-4 opacity-60 hover:opacity-100 transition-opacity z-50"
         title="View on GitHub"
+        aria-label="View NHL Stats Tracker source code on GitHub"
       >
         <GithubLogo size={32} weight="fill" className="text-muted-foreground hover:text-accent" />
       </a>
