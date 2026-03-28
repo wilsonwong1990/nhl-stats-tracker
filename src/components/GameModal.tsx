@@ -180,7 +180,7 @@ export function GameModal({ isOpen, onClose, gameId }: GameModalProps) {
                     {gameDetails.threeStars.map((star, index) => (
                       <div 
                         key={index}
-                        className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 transition-colors"
+                        className="flex items-center justify-between py-2 px-3 rounded-md"
                       >
                         <div className="flex items-center gap-3">
                           <Badge variant="default" className="bg-accent text-accent-foreground">
@@ -213,7 +213,7 @@ export function GameModal({ isOpen, onClose, gameId }: GameModalProps) {
                     {gameDetails.goalScorers.map((goal, index) => (
                       <div 
                         key={index}
-                        className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 transition-colors"
+                        className="flex items-center justify-between py-2 px-3 rounded-md"
                       >
                         <div className="flex items-center gap-3">
                           <Badge variant="outline" className="text-xs font-mono">
