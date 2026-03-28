@@ -586,12 +586,12 @@ function App() {
                     <table className="w-full">
                       <thead className="border-b border-border">
                         <tr className="text-left">
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Date</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Time (PST)</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Opponent</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Location</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Score</th>
-                          <th className="px-4 py-3 text-sm font-medium text-muted-foreground">Result</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Date</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Time (PST)</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Opponent</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Location</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Score</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-muted-foreground">Result</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -602,21 +602,32 @@ function App() {
                           return (
                             <Fragment key={game.id}>
                               <tr 
-                                className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} cursor-pointer hover:bg-accent/10 transition-colors`}
+                                className={`${index % 2 === 0 ? 'bg-card/50' : 'bg-transparent'} group cursor-pointer transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 hover:[&>td]:bg-accent/15 active:[&>td]:bg-accent/25 focus-visible:[&>td]:bg-accent/20`}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    handleGameClick(game)
+                                  }
+                                }}
                                 onClick={() => handleGameClick(game)}
                               >
-                                <td className="px-4 py-3 text-sm">{formatGameDate(game.date, 'short')}</td>
-                                <td className="px-4 py-3 text-sm font-medium tabular-nums">{game.time}</td>
-                                <td className="px-4 py-3 text-sm">{game.opponent}</td>
-                                <td className="px-4 py-3">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{formatGameDate(game.date, 'short')}</td>
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium tabular-nums">{game.time}</td>
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">
+                                  <span className="sm:hidden group-hover:underline group-active:underline">{game.opponentAbbrev}</span>
+                                  <span className="hidden sm:inline group-hover:underline group-active:underline">{game.opponent}</span>
+                                </td>
+                                <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   <Badge 
                                     variant={game.isHome ? 'default' : 'secondary'}
-                                    className={game.isHome ? 'bg-accent text-accent-foreground' : ''}
+                                    className={game.isHome ? 'bg-accent text-accent-foreground text-xs' : 'text-xs'}
                                   >
                                     {game.isHome ? 'Home' : 'Away'}
                                   </Badge>
                                 </td>
-                                <td className="px-4 py-3 text-sm font-medium tabular-nums">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium tabular-nums">
                                   {(game.gameState === 'LIVE' || isCompleted) && game.homeScore !== undefined && game.awayScore !== undefined ? (
                                     game.isHome 
                                       ? `${game.homeScore} - ${game.awayScore}`
@@ -625,7 +636,7 @@ function App() {
                                     <span className="text-muted-foreground">-</span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   {game.gameState === 'LIVE' ? (
                                     <div className="flex items-center gap-1">
                                       <Circle className="text-red-500 animate-pulse" size={12} weight="fill" />
@@ -931,12 +942,20 @@ function App() {
                         {players.map(player => (
                           <div 
                             key={`${player.name}-${player.number}`} 
-                            className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors cursor-pointer"
+                            className="group flex items-center justify-between p-3 border rounded cursor-pointer touch-manipulation transition-colors hover:bg-accent/15 active:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:bg-accent/20 hover:ring-1 hover:ring-ring/30"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                handlePlayerClick(player)
+                              }
+                            }}
                             onClick={() => handlePlayerClick(player)}
                           >
                             <div className="flex items-center gap-2">
                               <div>
-                                <div className="text-sm font-medium">{player.name}</div>
+                                <div className="text-sm font-medium group-hover:underline group-active:underline">{player.name}</div>
                                 <div className="text-xs text-muted-foreground">{player.position}</div>
                               </div>
                               {player.captaincy && (

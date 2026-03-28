@@ -71,7 +71,6 @@ All statistics are fetched live from the NHL API and cached for 24 hours.
 - **UI Components**: 
   - [Radix UI](https://www.radix-ui.com/) primitives
   - [Phosphor Icons](https://phosphoricons.com/)
-- **Data Fetching**: [@tanstack/react-query](https://tanstack.com/query)
 - **State Management**: [@github/spark](https://github.com/githubnext/spark) hooks
 - **Testing**: [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/)
 
@@ -84,7 +83,6 @@ This project is available in multiple formats for easy deployment:
 Pre-built Docker images are published to GitHub Container Registry:
 - **Registry**: `ghcr.io/wilsonwong1990/nhl-stats-tracker`
 - **Tags**: `latest`, `v{version}`, `main`
-- **Size**: ~50MB (optimized multi-stage build)
 - **Base**: Nginx Alpine (production-ready)
 
 View available images: [GitHub Packages](https://github.com/wilsonwong1990/nhl-stats-tracker/pkgs/container/nhl-stats-tracker)
@@ -166,3 +164,9 @@ This is a personal project, but suggestions and feedback are welcome! Feel free 
 ---
 
 **Track your favorite NHL team! 🏒**
+function useTeamSchedule(team: TeamInfo, season = DEFAULT_SEASON) {
+  return useQuery({
+    queryKey: ['schedule', team.nhlAbbrev, season],
+    queryFn: () => fetchTeamSchedule(team, season),
+  });
+}
