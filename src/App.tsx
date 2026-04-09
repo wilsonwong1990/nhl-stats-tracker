@@ -42,7 +42,8 @@ import {
   XCircle,
   Circle,
   LinkSimple,
-  Trophy
+  Trophy,
+  GithubLogo
 } from '@phosphor-icons/react'
 import { fetchAllTeamData, fetchGameDetails, type Game, type PlayerStat, type InjuredPlayer, type TeamStats, type RosterPlayer, type StandingsInfo, type GameDetails, DEFAULT_SEASON } from '@/lib/nhl-api'
 import { applyTeamTheme, getTeamInfo, listTeams, resetTeamTheme, DEFAULT_TEAM_ID, type TeamId } from '@/lib/teams'
@@ -1027,6 +1028,18 @@ function App() {
         onClose={handleCloseGameModal}
         gameId={selectedGameId}
       />
+
+      {/* GitHub Watermark */}
+      <a
+        href="https://github.com/wilsonwong1990/nhl-stats-tracker"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-4 right-4 opacity-60 hover:opacity-100 transition-opacity z-50"
+        title="View on GitHub"
+        aria-label="View NHL Stats Tracker source code on GitHub"
+      >
+        <GithubLogo size={32} weight="fill" className="text-muted-foreground hover:text-accent" />
+      </a>
     </div>
   );
 }
